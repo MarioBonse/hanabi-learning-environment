@@ -15,9 +15,30 @@
 
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 
 from hanabi_learning_environment import pyhanabi
 from hanabi_learning_environment.pyhanabi import color_char_to_idx
+
+"""
+FEDE COMMENT
+Probabilmente ci sono import di troppo, ho semplicemente copia-incollato dal colab che mi hai mandato
+e poi vediamo cosa c'è da eliminare.
+"""
+
+
+import abc
+import tensorflow as tf
+import numpy as np
+from tf_agents.environments import py_environment
+from tf_agents.environments import tf_environment
+from tf_agents.environments import tf_py_environment
+from tf_agents.environments import py_environment
+from tf_agents.environments import utils
+from tf_agents.specs import array_spec
+from tf_agents.environments import wrappers
+from tf_agents.environments import suite_gym
+from tf_agents.trajectories import time_step as ts
 
 MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 
@@ -25,48 +46,23 @@ MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 # Environment API
 #-------------------------------------------------------------------------------
 
+"""
+FEDE COMMENT
+My understanding è che dobbiamo solo andare a toccare i primi 4 metodi di questa classe (escluso init).
+sull'init ho aggiunto una linea necessaria che setta self._current_time_step = None.
 
-class Environment(object):
-  """Abstract Environment interface.
+confesso di essere ignorante di Abstract Classes e quindi non so se effettivamente 
+stia overridando la init di PyEnvironment... spero di sì e spero non sia un problema il fatto
+che la nostra init prenda in input la config, mentre l'abstract class non prevede input... bho dimmi te.
 
-  All concrete implementations of an environment should derive from this
-  interface and implement the method stubs.
-  """
+Altra cosa, l'init dell'abstract class chiama quella funzione assert_members_are_not_overridden e non ho minimamente
+guardato cosa faccia e se sia problematica... I guess che tira fuori un errore se provi a instantiate un object
+che non abbia reset e step overriden? Mi sembra però un pelo dubbioso perchè nell'abstract ci sono i metodi 
+reset e step che dicono esplicitamente di non overridare, e dicono invece di cambiare _reset e _step (che infatti 
+ho messo nella nostra classe environment). Te capisci qualcosa?
+"""
 
-  def reset(self, config):
-    """Reset the environment with a new config.
-
-    Signals environment handlers to reset and restart the environment using
-    a config dict.
-
-    Args:
-      config: dict, specifying the parameters of the environment to be
-        generated.
-
-    Returns:
-      observation: A dict containing the full observation state.
-    """
-    raise NotImplementedError("Not implemented in Abstract Base class")
-
-  def step(self, action):
-    """Take one step in the game.
-
-    Args:
-      action: dict, mapping to an action taken by an agent.
-
-    Returns:
-      observation: dict, Containing full observation state.
-      reward: float, Reward obtained from taking the action.
-      done: bool, Whether the game is done.
-      info: dict, Optional debugging information.
-
-    Raises:
-      AssertionError: When an illegal action is provided.
-    """
-    raise NotImplementedError("Not implemented in Abstract Base class")
-
-
-class HanabiEnv(Environment):
+class HanabiEnv(py_environment.PyEnvironment):
   """RL interface to a Hanabi environment.
 
   ```python
@@ -102,12 +98,47 @@ class HanabiEnv(Environment):
     """
     assert isinstance(config, dict), "Expected config to be of type dict."
     self.game = pyhanabi.HanabiGame(config)
+    self._current_time_step = None
 
     self.observation_encoder = pyhanabi.ObservationEncoder(
         self.game, pyhanabi.ObservationEncoderType.CANONICAL)
     self.players = self.game.num_players()
 
-  def reset(self):
+  def observation_spec(self):
+    """
+    FEDE COMMENT
+    da implementare, non ho ancora neanche provato a guardare come dev'essere fatto ciò che ritorna, ma dev'essere
+    di classe ArraySpec
+    """
+    pass
+  
+  def action_spec(self):
+    """
+    FEDE COMMENT
+    da implementare, se non sbaglio questo tipo dovrebbe ritornare un int. O meglio, tf.agents  ha la sua classe 
+    ArraySpec che dobbiamo ritornare, ma per noi di fatto l'azione è un int, dobbiamo solo fare l'encoding di 
+    int in un ArraySpec penso... e mettiamo anche un bound inferiore (0) e superiore (num_moves) dentro arrayspec?
+    mi par di capire che si possa fare, ma non ho ancora minimamente guardato come.
+    """
+    pass
+
+  def _reset(self):
+    """
+    FEDE COMMENT
+    Da tf.agents:
+    Returns:
+      A `TimeStep` namedtuple containing:
+        step_type: A `StepType` of `FIRST`.
+        reward: 0.0, indicating the reward.
+        discount: 1.0, indicating the discount.
+        observation: A NumPy array, or a nested dict, list or tuple of arrays
+          corresponding to `observation_spec()`.
+    StepTypee TimeStep sono oggetti dentro tf_agents.trajectories.time_step, ma mi par di capire
+    che tf.agents ci abbia fatto il favore di creare funzioni che date obs e altre info ti 
+    generano un oggetto TimeStep che le contiene... visto che reset ritorna il primo TimeStep dobbiamo usare
+    la funzione tf_agents.trajectories.time_step.restart() a cui passiamo le required info...
+    verosimilmente abbiamo un return restart(info)
+    """
     r"""Resets the environment for a new game.
 
     Returns:
@@ -216,23 +247,15 @@ class HanabiEnv(Environment):
     obs["current_player"] = self.state.cur_player()
     return obs
 
-  def vectorized_observation_shape(self):
-    """Returns the shape of the vectorized observation.
-
-    Returns:
-      A list of integer dimensions describing the observation shape.
+  def _step(self, action):
     """
-    return self.observation_encoder.shape()
-
-  def num_moves(self):
-    """Returns the total number of moves in this game (legal or not).
-
-    Returns:
-      Integer, number of moves.
+    FEDE COMMENT
+    Per semplicità possiamo considerare action in input solo come int tra [0, num_moves()) e ignorare il caso in 
+    cui è un dizionario che per noi è solo scomodo... In questo modo _step prende in input "direttamente" 
+    (dopo aver arrotondato) l'output dell'agente (che è più intuitivo). Vogliamo eliminare il codice che gestisce l'azione
+    come fosse un dizionario? Penso che comunque sarebbe illegale se _step ricevesse un azione come dizionario per via di 
+    action_spec()
     """
-    return self.game.max_moves()
-
-  def step(self, action):
     """Take one step in the game.
 
     Args:
@@ -364,6 +387,22 @@ class HanabiEnv(Environment):
     info = {}
 
     return (observation, reward, done, info)
+
+  def vectorized_observation_shape(self):
+    """Returns the shape of the vectorized observation.
+
+    Returns:
+      A list of integer dimensions describing the observation shape.
+    """
+    return self.observation_encoder.shape()
+
+  def num_moves(self):
+    """Returns the total number of moves in this game (legal or not).
+
+    Returns:
+      Integer, number of moves.
+    """
+    return self.game.max_moves()
 
   def _make_observation_all_players(self):
     """Make observation for all players.
