@@ -108,8 +108,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 	def observation_spec(self):
 		"""
 		FEDE COMMENT
-		da implementare, non ho ancora neanche provato a guardare come dev'essere fatto ciò che ritorna, ma dev'essere
-		di classe ArraySpec
+		da implementare, deve ritornare un ArraySpec(shape=, dtype=)
+		vedere considerazioni in _step riguardo a come vogliamo mandare l'observation
 		"""
 		pass
 	
@@ -129,19 +129,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 	def _reset(self):
 		"""
 		FEDE COMMENT
-		Da tf.agents:
-		Returns:
-			A `TimeStep` namedtuple containing:
-				step_type: A `StepType` of `FIRST`.
-				reward: 0.0, indicating the reward.
-				discount: 1.0, indicating the discount.
-				observation: A NumPy array, or a nested dict, list or tuple of arrays
-					corresponding to `observation_spec()`.
-		StepTypee TimeStep sono oggetti dentro tf_agents.trajectories.time_step, ma mi par di capire
-		che tf.agents ci abbia fatto il favore di creare funzioni che date obs e altre info ti 
-		generano un oggetto TimeStep che le contiene... visto che reset ritorna il primo TimeStep dobbiamo usare
-		la funzione tf_agents.trajectories.time_step.restart() a cui passiamo le required info...
-		verosimilmente abbiamo un return restart(info)
+		Dobbiamo solo decidere come gestire le observation visto che per ora stiamo mandando 
+		le obs di tutti i player... vedi commento in _step()
 		"""
 		r"""Resets the environment for a new game.
 
@@ -249,7 +238,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
-		return obs
+
+		return ts.restart(obs)
 
 	def _step(self, action):
 		"""
