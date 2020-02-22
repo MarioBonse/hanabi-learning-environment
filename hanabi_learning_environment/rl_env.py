@@ -63,565 +63,585 @@ ho messo nella nostra classe environment). Te capisci qualcosa?
 """
 
 class HanabiEnv(py_environment.PyEnvironment):
-  """RL interface to a Hanabi environment.
+	"""RL interface to a Hanabi environment.
 
-  ```python
+	```python
 
-  environment = rl_env.make()
-  config = { 'players': 5 }
-  observation = environment.reset(config)
-  while not done:
-      # Agent takes action
-      action =  ...
-      # Environment take a step
-      observation, reward, done, info = environment.step(action)
-  ```
-  """
+	environment = rl_env.make()
+	config = { 'players': 5 }
+	observation = environment.reset(config)
+	while not done:
+			# Agent takes action
+			action =  ...
+			# Environment take a step
+			observation, reward, done, info = environment.step(action)
+	```
+	"""
 
-  def __init__(self, config):
-    r"""Creates an environment with the given game configuration.
+	def __init__(self, config):
+		r"""Creates an environment with the given game configuration.
 
-    Args:
-      config: dict, With parameters for the game. Config takes the following
-        keys and values.
-          - colors: int, Number of colors \in [2,5].
-          - ranks: int, Number of ranks \in [2,5].
-          - players: int, Number of players \in [2,5].
-          - hand_size: int, Hand size \in [4,5].
-          - max_information_tokens: int, Number of information tokens (>=0).
-          - max_life_tokens: int, Number of life tokens (>=1).
-          - observation_type: int.
-            0: Minimal observation.
-            1: First-order common knowledge observation.
-          - seed: int, Random seed.
-          - random_start_player: bool, Random start player.
-    """
-    assert isinstance(config, dict), "Expected config to be of type dict."
-    self.game = pyhanabi.HanabiGame(config)
-    self._current_time_step = None
+		Args:
+			config: dict, With parameters for the game. Config takes the following
+				keys and values.
+					- colors: int, Number of colors \in [2,5].
+					- ranks: int, Number of ranks \in [2,5].
+					- players: int, Number of players \in [2,5].
+					- hand_size: int, Hand size \in [4,5].
+					- max_information_tokens: int, Number of information tokens (>=0).
+					- max_life_tokens: int, Number of life tokens (>=1).
+					- observation_type: int.
+						0: Minimal observation.
+						1: First-order common knowledge observation.
+					- seed: int, Random seed.
+					- random_start_player: bool, Random start player.
+		"""
+		assert isinstance(config, dict), "Expected config to be of type dict."
+		self.game = pyhanabi.HanabiGame(config)
+		self.gamma = 0.95
+		self._current_time_step = None
 
-    self.observation_encoder = pyhanabi.ObservationEncoder(
-        self.game, pyhanabi.ObservationEncoderType.CANONICAL)
-    self.players = self.game.num_players()
+		self.observation_encoder = pyhanabi.ObservationEncoder(
+				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
+		self.players = self.game.num_players()
 
-  def observation_spec(self):
-    """
-    FEDE COMMENT
-    da implementare, non ho ancora neanche provato a guardare come dev'essere fatto ciò che ritorna, ma dev'essere
-    di classe ArraySpec
-    """
-    pass
-  
-  def action_spec(self):
-    """
-    FEDE COMMENT
-    da implementare, se non sbaglio questo tipo dovrebbe ritornare un int. O meglio, tf.agents  ha la sua classe 
-    ArraySpec che dobbiamo ritornare, ma per noi di fatto l'azione è un int, dobbiamo solo fare l'encoding di 
-    int in un ArraySpec penso... e mettiamo anche un bound inferiore (0) e superiore (num_moves) dentro arrayspec?
-    mi par di capire che si possa fare, ma non ho ancora minimamente guardato come.
-    """
-    pass
+	def observation_spec(self):
+		"""
+		FEDE COMMENT
+		da implementare, non ho ancora neanche provato a guardare come dev'essere fatto ciò che ritorna, ma dev'essere
+		di classe ArraySpec
+		"""
+		pass
+	
+	def action_spec(self):
+		"""
+		FEDE COMMENT
+		da implementare, se non sbaglio questo tipo dovrebbe ritornare un int. O meglio, tf.agents  ha la sua classe 
+		ArraySpec che dobbiamo ritornare, ma per noi di fatto l'azione è un int, dobbiamo solo fare l'encoding di 
+		int in un ArraySpec penso... e mettiamo anche un bound inferiore (0) e superiore (num_moves) dentro arrayspec?
+		mi par di capire che si possa fare, ma non ho ancora minimamente guardato come.
 
-  def _reset(self):
-    """
-    FEDE COMMENT
-    Da tf.agents:
-    Returns:
-      A `TimeStep` namedtuple containing:
-        step_type: A `StepType` of `FIRST`.
-        reward: 0.0, indicating the reward.
-        discount: 1.0, indicating the discount.
-        observation: A NumPy array, or a nested dict, list or tuple of arrays
-          corresponding to `observation_spec()`.
-    StepTypee TimeStep sono oggetti dentro tf_agents.trajectories.time_step, ma mi par di capire
-    che tf.agents ci abbia fatto il favore di creare funzioni che date obs e altre info ti 
-    generano un oggetto TimeStep che le contiene... visto che reset ritorna il primo TimeStep dobbiamo usare
-    la funzione tf_agents.trajectories.time_step.restart() a cui passiamo le required info...
-    verosimilmente abbiamo un return restart(info)
-    """
-    r"""Resets the environment for a new game.
+		Update:
+		Questo return che ho messo dovrebbe andare bene (not too sure about shape though.... bha)
+		"""
+		return array_spec.BoundedArraySpec(shape=(1,), dtype=np.int16, minimum=0, maximum=self.num_moves()-1)
 
-    Returns:
-      observation: dict, containing the full observation about the game at the
-        current step. *WARNING* This observation contains all the hands of the
-        players and should not be passed to the agents.
-        An example observation:
-        {'current_player': 0,
-         'player_observations': [{'current_player': 0,
-                                  'current_player_offset': 0,
-                                  'deck_size': 40,
-                                  'discard_pile': [],
-                                  'fireworks': {'B': 0,
-                                                'G': 0,
-                                                'R': 0,
-                                                'W': 0,
-                                                'Y': 0},
-                                  'information_tokens': 8,
-                                  'legal_moves': [{'action_type': 'PLAY',
-                                                   'card_index': 0},
-                                                  {'action_type': 'PLAY',
-                                                   'card_index': 1},
-                                                  {'action_type': 'PLAY',
-                                                   'card_index': 2},
-                                                  {'action_type': 'PLAY',
-                                                   'card_index': 3},
-                                                  {'action_type': 'PLAY',
-                                                   'card_index': 4},
-                                                  {'action_type':
-                                                  'REVEAL_COLOR',
-                                                   'color': 'R',
-                                                   'target_offset': 1},
-                                                  {'action_type':
-                                                  'REVEAL_COLOR',
-                                                   'color': 'G',
-                                                   'target_offset': 1},
-                                                  {'action_type':
-                                                  'REVEAL_COLOR',
-                                                   'color': 'B',
-                                                   'target_offset': 1},
-                                                  {'action_type': 'REVEAL_RANK',
-                                                   'rank': 0,
-                                                   'target_offset': 1},
-                                                  {'action_type': 'REVEAL_RANK',
-                                                   'rank': 1,
-                                                   'target_offset': 1},
-                                                  {'action_type': 'REVEAL_RANK',
-                                                   'rank': 2,
-                                                   'target_offset': 1}],
-                                  'life_tokens': 3,
-                                  'observed_hands': [[{'color': None, 'rank':
-                                  -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1}],
-                                                     [{'color': 'G', 'rank': 2},
-                                                      {'color': 'R', 'rank': 0},
-                                                      {'color': 'R', 'rank': 1},
-                                                      {'color': 'B', 'rank': 0},
-                                                      {'color': 'R', 'rank':
-                                                      1}]],
-                                  'num_players': 2,
-                                  'vectorized': [ 0, 0, 1, ... ]},
-                                 {'current_player': 0,
-                                  'current_player_offset': 1,
-                                  'deck_size': 40,
-                                  'discard_pile': [],
-                                  'fireworks': {'B': 0,
-                                                'G': 0,
-                                                'R': 0,
-                                                'W': 0,
-                                                'Y': 0},
-                                  'information_tokens': 8,
-                                  'legal_moves': [],
-                                  'life_tokens': 3,
-                                  'observed_hands': [[{'color': None, 'rank':
-                                  -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1},
-                                                      {'color': None, 'rank':
-                                                      -1}],
-                                                     [{'color': 'W', 'rank': 2},
-                                                      {'color': 'Y', 'rank': 4},
-                                                      {'color': 'Y', 'rank': 2},
-                                                      {'color': 'G', 'rank': 0},
-                                                      {'color': 'W', 'rank':
-                                                      1}]],
-                                  'num_players': 2,
-                                  'vectorized': [ 0, 0, 1, ... ]}]}
-    """
-    self.state = self.game.new_initial_state()
+	def _reset(self):
+		"""
+		FEDE COMMENT
+		Da tf.agents:
+		Returns:
+			A `TimeStep` namedtuple containing:
+				step_type: A `StepType` of `FIRST`.
+				reward: 0.0, indicating the reward.
+				discount: 1.0, indicating the discount.
+				observation: A NumPy array, or a nested dict, list or tuple of arrays
+					corresponding to `observation_spec()`.
+		StepTypee TimeStep sono oggetti dentro tf_agents.trajectories.time_step, ma mi par di capire
+		che tf.agents ci abbia fatto il favore di creare funzioni che date obs e altre info ti 
+		generano un oggetto TimeStep che le contiene... visto che reset ritorna il primo TimeStep dobbiamo usare
+		la funzione tf_agents.trajectories.time_step.restart() a cui passiamo le required info...
+		verosimilmente abbiamo un return restart(info)
+		"""
+		r"""Resets the environment for a new game.
 
-    while self.state.cur_player() == pyhanabi.CHANCE_PLAYER_ID:
-      self.state.deal_random_card()
+		Returns:
+			observation: dict, containing the full observation about the game at the
+				current step. *WARNING* This observation contains all the hands of the
+				players and should not be passed to the agents.
+				An example observation:
+				{'current_player': 0,
+				 'player_observations': [{'current_player': 0,
+																	'current_player_offset': 0,
+																	'deck_size': 40,
+																	'discard_pile': [],
+																	'fireworks': {'B': 0,
+																								'G': 0,
+																								'R': 0,
+																								'W': 0,
+																								'Y': 0},
+																	'information_tokens': 8,
+																	'legal_moves': [{'action_type': 'PLAY',
+																									 'card_index': 0},
+																									{'action_type': 'PLAY',
+																									 'card_index': 1},
+																									{'action_type': 'PLAY',
+																									 'card_index': 2},
+																									{'action_type': 'PLAY',
+																									 'card_index': 3},
+																									{'action_type': 'PLAY',
+																									 'card_index': 4},
+																									{'action_type':
+																									'REVEAL_COLOR',
+																									 'color': 'R',
+																									 'target_offset': 1},
+																									{'action_type':
+																									'REVEAL_COLOR',
+																									 'color': 'G',
+																									 'target_offset': 1},
+																									{'action_type':
+																									'REVEAL_COLOR',
+																									 'color': 'B',
+																									 'target_offset': 1},
+																									{'action_type': 'REVEAL_RANK',
+																									 'rank': 0,
+																									 'target_offset': 1},
+																									{'action_type': 'REVEAL_RANK',
+																									 'rank': 1,
+																									 'target_offset': 1},
+																									{'action_type': 'REVEAL_RANK',
+																									 'rank': 2,
+																									 'target_offset': 1}],
+																	'life_tokens': 3,
+																	'observed_hands': [[{'color': None, 'rank':
+																	-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1}],
+																										 [{'color': 'G', 'rank': 2},
+																											{'color': 'R', 'rank': 0},
+																											{'color': 'R', 'rank': 1},
+																											{'color': 'B', 'rank': 0},
+																											{'color': 'R', 'rank':
+																											1}]],
+																	'num_players': 2,
+																	'vectorized': [ 0, 0, 1, ... ]},
+																 {'current_player': 0,
+																	'current_player_offset': 1,
+																	'deck_size': 40,
+																	'discard_pile': [],
+																	'fireworks': {'B': 0,
+																								'G': 0,
+																								'R': 0,
+																								'W': 0,
+																								'Y': 0},
+																	'information_tokens': 8,
+																	'legal_moves': [],
+																	'life_tokens': 3,
+																	'observed_hands': [[{'color': None, 'rank':
+																	-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1},
+																											{'color': None, 'rank':
+																											-1}],
+																										 [{'color': 'W', 'rank': 2},
+																											{'color': 'Y', 'rank': 4},
+																											{'color': 'Y', 'rank': 2},
+																											{'color': 'G', 'rank': 0},
+																											{'color': 'W', 'rank':
+																											1}]],
+																	'num_players': 2,
+																	'vectorized': [ 0, 0, 1, ... ]}]}
+		"""
+		self.state = self.game.new_initial_state()
 
-    obs = self._make_observation_all_players()
-    obs["current_player"] = self.state.cur_player()
-    return obs
+		while self.state.cur_player() == pyhanabi.CHANCE_PLAYER_ID:
+			self.state.deal_random_card()
 
-  def _step(self, action):
-    """
-    FEDE COMMENT
-    Per semplicità possiamo considerare action in input solo come int tra [0, num_moves()) e ignorare il caso in 
-    cui è un dizionario che per noi è solo scomodo... In questo modo _step prende in input "direttamente" 
-    (dopo aver arrotondato) l'output dell'agente (che è più intuitivo). Vogliamo eliminare il codice che gestisce l'azione
-    come fosse un dizionario? Penso che comunque sarebbe illegale se _step ricevesse un azione come dizionario per via di 
-    action_spec()
-    """
-    """Take one step in the game.
+		obs = self._make_observation_all_players()
+		obs["current_player"] = self.state.cur_player()
+		return obs
 
-    Args:
-      action: dict, mapping to a legal action taken by an agent. The following
-        actions are supported:
-          - { 'action_type': 'PLAY', 'card_index': int }
-          - { 'action_type': 'DISCARD', 'card_index': int }
-          - {
-              'action_type': 'REVEAL_COLOR',
-              'color': str,
-              'target_offset': int >=0
-            }
-          - {
-              'action_type': 'REVEAL_RANK',
-              'rank': str,
-              'target_offset': int >=0
-            }
-        Alternatively, action may be an int in range [0, num_moves()).
+	def _step(self, action):
+		"""
+		FEDE COMMENT
+		Per semplicità possiamo considerare action in input solo come int tra [0, num_moves()) e ignorare il caso in 
+		cui è un dizionario che per noi è solo scomodo... In questo modo _step prende in input "direttamente" 
+		(dopo aver arrotondato) l'output dell'agente (che è più intuitivo). Vogliamo eliminare il codice che gestisce l'azione
+		come fosse un dizionario? Penso che comunque sarebbe illegale se _step ricevesse un azione come dizionario per via di 
+		action_spec()
+		"""
+		"""Take one step in the game.
 
-    Returns:
-      observation: dict, containing the full observation about the game at the
-        current step. *WARNING* This observation contains all the hands of the
-        players and should not be passed to the agents.
-        An example observation:
-        {'current_player': 0,
-         'player_observations': [{'current_player': 0,
-                            'current_player_offset': 0,
-                            'deck_size': 40,
-                            'discard_pile': [],
-                            'fireworks': {'B': 0,
-                                      'G': 0,
-                                      'R': 0,
-                                      'W': 0,
-                                      'Y': 0},
-                            'information_tokens': 8,
-                            'legal_moves': [{'action_type': 'PLAY',
-                                         'card_index': 0},
-                                        {'action_type': 'PLAY',
-                                         'card_index': 1},
-                                        {'action_type': 'PLAY',
-                                         'card_index': 2},
-                                        {'action_type': 'PLAY',
-                                         'card_index': 3},
-                                        {'action_type': 'PLAY',
-                                         'card_index': 4},
-                                        {'action_type': 'REVEAL_COLOR',
-                                         'color': 'R',
-                                         'target_offset': 1},
-                                        {'action_type': 'REVEAL_COLOR',
-                                         'color': 'G',
-                                         'target_offset': 1},
-                                        {'action_type': 'REVEAL_COLOR',
-                                         'color': 'B',
-                                         'target_offset': 1},
-                                        {'action_type': 'REVEAL_RANK',
-                                         'rank': 0,
-                                         'target_offset': 1},
-                                        {'action_type': 'REVEAL_RANK',
-                                         'rank': 1,
-                                         'target_offset': 1},
-                                        {'action_type': 'REVEAL_RANK',
-                                         'rank': 2,
-                                         'target_offset': 1}],
-                            'life_tokens': 3,
-                            'observed_hands': [[{'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1}],
-                                           [{'color': 'G', 'rank': 2},
-                                            {'color': 'R', 'rank': 0},
-                                            {'color': 'R', 'rank': 1},
-                                            {'color': 'B', 'rank': 0},
-                                            {'color': 'R', 'rank': 1}]],
-                            'num_players': 2,
-                            'vectorized': [ 0, 0, 1, ... ]},
-                           {'current_player': 0,
-                            'current_player_offset': 1,
-                            'deck_size': 40,
-                            'discard_pile': [],
-                            'fireworks': {'B': 0,
-                                      'G': 0,
-                                      'R': 0,
-                                      'W': 0,
-                                      'Y': 0},
-                            'information_tokens': 8,
-                            'legal_moves': [],
-                            'life_tokens': 3,
-                            'observed_hands': [[{'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1},
-                                            {'color': None, 'rank': -1}],
-                                           [{'color': 'W', 'rank': 2},
-                                            {'color': 'Y', 'rank': 4},
-                                            {'color': 'Y', 'rank': 2},
-                                            {'color': 'G', 'rank': 0},
-                                            {'color': 'W', 'rank': 1}]],
-                            'num_players': 2,
-                            'vectorized': [ 0, 0, 1, ... ]}]}
-      reward: float, Reward obtained from taking the action.
-      done: bool, Whether the game is done.
-      info: dict, Optional debugging information.
+		Args:
+			action: dict, mapping to a legal action taken by an agent. The following
+				actions are supported:
+					- { 'action_type': 'PLAY', 'card_index': int }
+					- { 'action_type': 'DISCARD', 'card_index': int }
+					- {
+							'action_type': 'REVEAL_COLOR',
+							'color': str,
+							'target_offset': int >=0
+						}
+					- {
+							'action_type': 'REVEAL_RANK',
+							'rank': str,
+							'target_offset': int >=0
+						}
+				Alternatively, action may be an int in range [0, num_moves()).
 
-    Raises:
-      AssertionError: When an illegal action is provided.
-    """
-    if isinstance(action, dict):
-      # Convert dict action HanabiMove
-      action = self._build_move(action)
-    elif isinstance(action, int):
-      # Convert int action into a Hanabi move.
-      action = self.game.get_move(action)
-    else:
-      raise ValueError("Expected action as dict or int, got: {}".format(
-          action))
+		Returns:
+			observation: dict, containing the full observation about the game at the
+				current step. *WARNING* This observation contains all the hands of the
+				players and should not be passed to the agents.
+				An example observation:
+				{'current_player': 0,
+				 'player_observations': [{'current_player': 0,
+														'current_player_offset': 0,
+														'deck_size': 40,
+														'discard_pile': [],
+														'fireworks': {'B': 0,
+																			'G': 0,
+																			'R': 0,
+																			'W': 0,
+																			'Y': 0},
+														'information_tokens': 8,
+														'legal_moves': [{'action_type': 'PLAY',
+																				 'card_index': 0},
+																				{'action_type': 'PLAY',
+																				 'card_index': 1},
+																				{'action_type': 'PLAY',
+																				 'card_index': 2},
+																				{'action_type': 'PLAY',
+																				 'card_index': 3},
+																				{'action_type': 'PLAY',
+																				 'card_index': 4},
+																				{'action_type': 'REVEAL_COLOR',
+																				 'color': 'R',
+																				 'target_offset': 1},
+																				{'action_type': 'REVEAL_COLOR',
+																				 'color': 'G',
+																				 'target_offset': 1},
+																				{'action_type': 'REVEAL_COLOR',
+																				 'color': 'B',
+																				 'target_offset': 1},
+																				{'action_type': 'REVEAL_RANK',
+																				 'rank': 0,
+																				 'target_offset': 1},
+																				{'action_type': 'REVEAL_RANK',
+																				 'rank': 1,
+																				 'target_offset': 1},
+																				{'action_type': 'REVEAL_RANK',
+																				 'rank': 2,
+																				 'target_offset': 1}],
+														'life_tokens': 3,
+														'observed_hands': [[{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1}],
+																					 [{'color': 'G', 'rank': 2},
+																						{'color': 'R', 'rank': 0},
+																						{'color': 'R', 'rank': 1},
+																						{'color': 'B', 'rank': 0},
+																						{'color': 'R', 'rank': 1}]],
+														'num_players': 2,
+														'vectorized': [ 0, 0, 1, ... ]},
+													 {'current_player': 0,
+														'current_player_offset': 1,
+														'deck_size': 40,
+														'discard_pile': [],
+														'fireworks': {'B': 0,
+																			'G': 0,
+																			'R': 0,
+																			'W': 0,
+																			'Y': 0},
+														'information_tokens': 8,
+														'legal_moves': [],
+														'life_tokens': 3,
+														'observed_hands': [[{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1},
+																						{'color': None, 'rank': -1}],
+																					 [{'color': 'W', 'rank': 2},
+																						{'color': 'Y', 'rank': 4},
+																						{'color': 'Y', 'rank': 2},
+																						{'color': 'G', 'rank': 0},
+																						{'color': 'W', 'rank': 1}]],
+														'num_players': 2,
+														'vectorized': [ 0, 0, 1, ... ]}]}
+			reward: float, Reward obtained from taking the action.
+			done: bool, Whether the game is done.
+			info: dict, Optional debugging information.
 
-    last_score = self.state.score()
-    # Apply the action to the state.
-    self.state.apply_move(action)
+		Raises:
+			AssertionError: When an illegal action is provided.
+		"""
+		if isinstance(action, dict):
+			# Convert dict action HanabiMove
+			action = self._build_move(action)
+		elif isinstance(action, int):
+			# Convert int action into a Hanabi move.
+			action = self.game.get_move(action)
+		else:
+			raise ValueError("Expected action as dict or int, got: {}".format(
+					action))
 
-    while self.state.cur_player() == pyhanabi.CHANCE_PLAYER_ID:
-      self.state.deal_random_card()
+		last_score = self.state.score()
+		# Apply the action to the state.
+		self.state.apply_move(action)
 
-    observation = self._make_observation_all_players()
-    done = self.state.is_terminal()
-    # Reward is score differential. May be large and negative at game end.
-    reward = self.state.score() - last_score
-    info = {}
+		while self.state.cur_player() == pyhanabi.CHANCE_PLAYER_ID:
+			self.state.deal_random_card()
 
-    return (observation, reward, done, info)
+		"""
+		FEDE COMMENT
+		per ora stiamo passando tutte le observation di tutti quanti (Nota che observation include info su chi
+		è il current player). Per scomporre l'observation c'è già la funzione run_experiment.parse_observation()
+		dobbiamo decidere se farlo già qua dentro o dentro il driver. Io sarei per farlo qua dentro.... 
 
-  def vectorized_observation_shape(self):
-    """Returns the shape of the vectorized observation.
+		Cose a cui pensare:
+		- observation_stacker (usato in parse_observation()) dev'essere uno per ogni agente... non ho 
+			ancora minimamente cagato come venga passato e se gliene possiamo dare più d'uno easy o no
+		- Turni dei giocatori come vengono gestiti? ne tiene traccia l'env? come gestire che non sia 
+			sempre lo stesso a cominciare? Se ne tiene traccia l'env dobbiamo passare qualche info
+			al driver oppure non serve? (a naso mi sembra che non serva)
+		"""
 
-    Returns:
-      A list of integer dimensions describing the observation shape.
-    """
-    return self.observation_encoder.shape()
+		observation = self._make_observation_all_players()
+		done = self.state.is_terminal()
+		# Reward is score differential. May be large and negative at game end.
+		reward = self.state.score() - last_score
+		
+		if done:
+			return ts.termination(observation, reward)
+		else:
+			return ts.transition(observation, reward, self.gamma)
 
-  def num_moves(self):
-    """Returns the total number of moves in this game (legal or not).
+	def vectorized_observation_shape(self):
+		"""Returns the shape of the vectorized observation.
 
-    Returns:
-      Integer, number of moves.
-    """
-    return self.game.max_moves()
+		Returns:
+			A list of integer dimensions describing the observation shape.
+		"""
+		return self.observation_encoder.shape()
 
-  def _make_observation_all_players(self):
-    """Make observation for all players.
+	def num_moves(self):
+		"""Returns the total number of moves in this game (legal or not).
 
-    Returns:
-      dict, containing observations for all players.
-    """
-    obs = {}
-    player_observations = [self._extract_dict_from_backend(
-        player_id, self.state.observation(player_id))
-        for player_id in range(self.players)]  # pylint: disable=bad-continuation
-    obs["player_observations"] = player_observations
-    obs["current_player"] = self.state.cur_player()
-    return obs
+		Returns:
+			Integer, number of moves.
+		"""
+		return self.game.max_moves()
 
-  def _extract_dict_from_backend(self, player_id, observation):
-    """Extract a dict of features from an observation from the backend.
+	def _make_observation_all_players(self):
+		"""Make observation for all players.
 
-    Args:
-      player_id: Int, player from whose perspective we generate the observation.
-      observation: A `pyhanabi.HanabiObservation` object.
+		Returns:
+			dict, containing observations for all players.
+		"""
+		obs = {}
+		player_observations = [self._extract_dict_from_backend(
+				player_id, self.state.observation(player_id))
+				for player_id in range(self.players)]  # pylint: disable=bad-continuation
+		obs["player_observations"] = player_observations
+		obs["current_player"] = self.state.cur_player()
+		return obs
 
-    Returns:
-      obs_dict: dict, mapping from HanabiObservation to a dict.
-    """
-    obs_dict = {}
-    obs_dict["current_player"] = self.state.cur_player()
-    obs_dict["current_player_offset"] = observation.cur_player_offset()
-    obs_dict["life_tokens"] = observation.life_tokens()
-    obs_dict["information_tokens"] = observation.information_tokens()
-    obs_dict["num_players"] = observation.num_players()
-    obs_dict["deck_size"] = observation.deck_size()
+	def _extract_dict_from_backend(self, player_id, observation):
+		"""Extract a dict of features from an observation from the backend.
 
-    obs_dict["fireworks"] = {}
-    fireworks = self.state.fireworks()
-    for color, firework in zip(pyhanabi.COLOR_CHAR, fireworks):
-      obs_dict["fireworks"][color] = firework
+		Args:
+			player_id: Int, player from whose perspective we generate the observation.
+			observation: A `pyhanabi.HanabiObservation` object.
 
-    obs_dict["legal_moves"] = []
-    obs_dict["legal_moves_as_int"] = []
-    for move in observation.legal_moves():
-      obs_dict["legal_moves"].append(move.to_dict())
-      obs_dict["legal_moves_as_int"].append(self.game.get_move_uid(move))
+		Returns:
+			obs_dict: dict, mapping from HanabiObservation to a dict.
+		"""
+		obs_dict = {}
+		obs_dict["current_player"] = self.state.cur_player()
+		obs_dict["current_player_offset"] = observation.cur_player_offset()
+		obs_dict["life_tokens"] = observation.life_tokens()
+		obs_dict["information_tokens"] = observation.information_tokens()
+		obs_dict["num_players"] = observation.num_players()
+		obs_dict["deck_size"] = observation.deck_size()
 
-    obs_dict["observed_hands"] = []
-    for player_hand in observation.observed_hands():
-      cards = [card.to_dict() for card in player_hand]
-      obs_dict["observed_hands"].append(cards)
+		obs_dict["fireworks"] = {}
+		fireworks = self.state.fireworks()
+		for color, firework in zip(pyhanabi.COLOR_CHAR, fireworks):
+			obs_dict["fireworks"][color] = firework
 
-    obs_dict["discard_pile"] = [
-        card.to_dict() for card in observation.discard_pile()
-    ]
+		obs_dict["legal_moves"] = []
+		obs_dict["legal_moves_as_int"] = []
+		for move in observation.legal_moves():
+			obs_dict["legal_moves"].append(move.to_dict())
+			obs_dict["legal_moves_as_int"].append(self.game.get_move_uid(move))
 
-    # Return hints received.
-    obs_dict["card_knowledge"] = []
-    for player_hints in observation.card_knowledge():
-      player_hints_as_dicts = []
-      for hint in player_hints:
-        hint_d = {}
-        if hint.color() is not None:
-          hint_d["color"] = pyhanabi.color_idx_to_char(hint.color())
-        else:
-          hint_d["color"] = None
-        hint_d["rank"] = hint.rank()
-        player_hints_as_dicts.append(hint_d)
-      obs_dict["card_knowledge"].append(player_hints_as_dicts)
+		obs_dict["observed_hands"] = []
+		for player_hand in observation.observed_hands():
+			cards = [card.to_dict() for card in player_hand]
+			obs_dict["observed_hands"].append(cards)
 
-    # ipdb.set_trace()
-    obs_dict["vectorized"] = self.observation_encoder.encode(observation)
-    obs_dict["pyhanabi"] = observation
+		obs_dict["discard_pile"] = [
+				card.to_dict() for card in observation.discard_pile()
+		]
 
-    return obs_dict
+		# Return hints received.
+		obs_dict["card_knowledge"] = []
+		for player_hints in observation.card_knowledge():
+			player_hints_as_dicts = []
+			for hint in player_hints:
+				hint_d = {}
+				if hint.color() is not None:
+					hint_d["color"] = pyhanabi.color_idx_to_char(hint.color())
+				else:
+					hint_d["color"] = None
+				hint_d["rank"] = hint.rank()
+				player_hints_as_dicts.append(hint_d)
+			obs_dict["card_knowledge"].append(player_hints_as_dicts)
 
-  def _build_move(self, action):
-    """Build a move from an action dict.
+		# ipdb.set_trace()
+		obs_dict["vectorized"] = self.observation_encoder.encode(observation)
+		obs_dict["pyhanabi"] = observation
 
-    Args:
-      action: dict, mapping to a legal action taken by an agent. The following
-        actions are supported:
-          - { 'action_type': 'PLAY', 'card_index': int }
-          - { 'action_type': 'DISCARD', 'card_index': int }
-          - {
-              'action_type': 'REVEAL_COLOR',
-              'color': str,
-              'target_offset': int >=0
-            }
-          - {
-              'action_type': 'REVEAL_RANK',
-              'rank': str,
-              'target_offset': int >=0
-            }
+		return obs_dict
 
-    Returns:
-      move: A `HanabiMove` object constructed from action.
+	def _build_move(self, action):
+		"""Build a move from an action dict.
 
-    Raises:
-      ValueError: Unknown action type.
-    """
-    assert isinstance(action, dict), "Expected dict, got: {}".format(action)
-    assert "action_type" in action, ("Action should contain `action_type`. "
-                                     "action: {}").format(action)
-    action_type = action["action_type"]
-    assert (action_type in MOVE_TYPES), (
-        "action_type: {} should be one of: {}".format(action_type, MOVE_TYPES))
+		Args:
+			action: dict, mapping to a legal action taken by an agent. The following
+				actions are supported:
+					- { 'action_type': 'PLAY', 'card_index': int }
+					- { 'action_type': 'DISCARD', 'card_index': int }
+					- {
+							'action_type': 'REVEAL_COLOR',
+							'color': str,
+							'target_offset': int >=0
+						}
+					- {
+							'action_type': 'REVEAL_RANK',
+							'rank': str,
+							'target_offset': int >=0
+						}
 
-    if action_type == "PLAY":
-      card_index = action["card_index"]
-      move = pyhanabi.HanabiMove.get_play_move(card_index=card_index)
-    elif action_type == "DISCARD":
-      card_index = action["card_index"]
-      move = pyhanabi.HanabiMove.get_discard_move(card_index=card_index)
-    elif action_type == "REVEAL_RANK":
-      target_offset = action["target_offset"]
-      rank = action["rank"]
-      move = pyhanabi.HanabiMove.get_reveal_rank_move(
-          target_offset=target_offset, rank=rank)
-    elif action_type == "REVEAL_COLOR":
-      target_offset = action["target_offset"]
-      assert isinstance(action["color"], str)
-      color = color_char_to_idx(action["color"])
-      move = pyhanabi.HanabiMove.get_reveal_color_move(
-          target_offset=target_offset, color=color)
-    else:
-      raise ValueError("Unknown action_type: {}".format(action_type))
+		Returns:
+			move: A `HanabiMove` object constructed from action.
 
-    legal_moves = self.state.legal_moves()
-    assert (str(move) in map(
-        str,
-        legal_moves)), "Illegal action: {}. Move should be one of : {}".format(
-            move, legal_moves)
+		Raises:
+			ValueError: Unknown action type.
+		"""
+		assert isinstance(action, dict), "Expected dict, got: {}".format(action)
+		assert "action_type" in action, ("Action should contain `action_type`. "
+																		 "action: {}").format(action)
+		action_type = action["action_type"]
+		assert (action_type in MOVE_TYPES), (
+				"action_type: {} should be one of: {}".format(action_type, MOVE_TYPES))
 
-    return move
+		if action_type == "PLAY":
+			card_index = action["card_index"]
+			move = pyhanabi.HanabiMove.get_play_move(card_index=card_index)
+		elif action_type == "DISCARD":
+			card_index = action["card_index"]
+			move = pyhanabi.HanabiMove.get_discard_move(card_index=card_index)
+		elif action_type == "REVEAL_RANK":
+			target_offset = action["target_offset"]
+			rank = action["rank"]
+			move = pyhanabi.HanabiMove.get_reveal_rank_move(
+					target_offset=target_offset, rank=rank)
+		elif action_type == "REVEAL_COLOR":
+			target_offset = action["target_offset"]
+			assert isinstance(action["color"], str)
+			color = color_char_to_idx(action["color"])
+			move = pyhanabi.HanabiMove.get_reveal_color_move(
+					target_offset=target_offset, color=color)
+		else:
+			raise ValueError("Unknown action_type: {}".format(action_type))
+
+		legal_moves = self.state.legal_moves()
+		assert (str(move) in map(
+				str,
+				legal_moves)), "Illegal action: {}. Move should be one of : {}".format(
+						move, legal_moves)
+
+		return move
 
 
 def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
-  """Make an environment.
+	"""Make an environment.
 
-  Args:
-    environment_name: str, Name of the environment to instantiate.
-    num_players: int, Number of players in this game.
-    pyhanabi_path: str, absolute path to header files for c code linkage.
+	Args:
+		environment_name: str, Name of the environment to instantiate.
+		num_players: int, Number of players in this game.
+		pyhanabi_path: str, absolute path to header files for c code linkage.
 
-  Returns:
-    env: An `Environment` object.
+	Returns:
+		env: An `Environment` object.
 
-  Raises:
-    ValueError: Unknown environment name.
-  """
+	Raises:
+		ValueError: Unknown environment name.
+	"""
 
-  if pyhanabi_path is not None:
-    prefixes=(pyhanabi_path,)
-    assert pyhanabi.try_cdef(prefixes=prefixes), "cdef failed to load"
-    assert pyhanabi.try_load(prefixes=prefixes), "library failed to load"
+	if pyhanabi_path is not None:
+		prefixes=(pyhanabi_path,)
+		assert pyhanabi.try_cdef(prefixes=prefixes), "cdef failed to load"
+		assert pyhanabi.try_load(prefixes=prefixes), "library failed to load"
 
-  if (environment_name == "Hanabi-Full" or
-      environment_name == "Hanabi-Full-CardKnowledge"):
-    return HanabiEnv(
-        config={
-            "colors":
-                5,
-            "ranks":
-                5,
-            "players":
-                num_players,
-            "max_information_tokens":
-                8,
-            "max_life_tokens":
-                3,
-            "observation_type":
-                pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
-        })
-  elif environment_name == "Hanabi-Full-Minimal":
-    return HanabiEnv(
-        config={
-            "colors": 5,
-            "ranks": 5,
-            "players": num_players,
-            "max_information_tokens": 8,
-            "max_life_tokens": 3,
-            "observation_type": pyhanabi.AgentObservationType.MINIMAL.value
-        })
-  elif environment_name == "Hanabi-Small":
-    return HanabiEnv(
-        config={
-            "colors":
-                2,
-            "ranks":
-                5,
-            "players":
-                num_players,
-            "hand_size":
-                2,
-            "max_information_tokens":
-                3,
-            "max_life_tokens":
-                1,
-            "observation_type":
-                pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
-        })
-  elif environment_name == "Hanabi-Very-Small":
-    return HanabiEnv(
-        config={
-            "colors":
-                1,
-            "ranks":
-                5,
-            "players":
-                num_players,
-            "hand_size":
-                2,
-            "max_information_tokens":
-                3,
-            "max_life_tokens":
-                1,
-            "observation_type":
-                pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
-        })
-  else:
-    raise ValueError("Unknown environment {}".format(environment_name))
+	if (environment_name == "Hanabi-Full" or
+			environment_name == "Hanabi-Full-CardKnowledge"):
+		return HanabiEnv(
+				config={
+						"colors":
+								5,
+						"ranks":
+								5,
+						"players":
+								num_players,
+						"max_information_tokens":
+								8,
+						"max_life_tokens":
+								3,
+						"observation_type":
+								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
+				})
+	elif environment_name == "Hanabi-Full-Minimal":
+		return HanabiEnv(
+				config={
+						"colors": 5,
+						"ranks": 5,
+						"players": num_players,
+						"max_information_tokens": 8,
+						"max_life_tokens": 3,
+						"observation_type": pyhanabi.AgentObservationType.MINIMAL.value
+				})
+	elif environment_name == "Hanabi-Small":
+		return HanabiEnv(
+				config={
+						"colors":
+								2,
+						"ranks":
+								5,
+						"players":
+								num_players,
+						"hand_size":
+								2,
+						"max_information_tokens":
+								3,
+						"max_life_tokens":
+								1,
+						"observation_type":
+								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
+				})
+	elif environment_name == "Hanabi-Very-Small":
+		return HanabiEnv(
+				config={
+						"colors":
+								1,
+						"ranks":
+								5,
+						"players":
+								num_players,
+						"hand_size":
+								2,
+						"max_information_tokens":
+								3,
+						"max_life_tokens":
+								1,
+						"observation_type":
+								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
+				})
+	else:
+		raise ValueError("Unknown environment {}".format(environment_name))
 
 
 #-------------------------------------------------------------------------------
@@ -630,115 +650,115 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
 
 
 class Agent(object):
-  """Agent interface.
+	"""Agent interface.
 
-  All concrete implementations of an Agent should derive from this interface
-  and implement the method stubs.
+	All concrete implementations of an Agent should derive from this interface
+	and implement the method stubs.
 
 
-  ```python
+	```python
 
-  class MyAgent(Agent):
-    ...
+	class MyAgent(Agent):
+		...
 
-  agents = [MyAgent(config) for _ in range(players)]
-  while not done:
-    ...
-    for agent_id, agent in enumerate(agents):
-      action = agent.act(observation)
-      if obs.current_player == agent_id:
-        assert action is not None
-      else
-        assert action is None
-    ...
-  ```
-  """
+	agents = [MyAgent(config) for _ in range(players)]
+	while not done:
+		...
+		for agent_id, agent in enumerate(agents):
+			action = agent.act(observation)
+			if obs.current_player == agent_id:
+				assert action is not None
+			else
+				assert action is None
+		...
+	```
+	"""
 
-  def __init__(self, config, *args, **kwargs):
-    r"""Initialize the agent.
+	def __init__(self, config, *args, **kwargs):
+		r"""Initialize the agent.
 
-    Args:
-      config: dict, With parameters for the game. Config takes the following
-        keys and values.
-          - colors: int, Number of colors \in [2,5].
-          - ranks: int, Number of ranks \in [2,5].
-          - players: int, Number of players \in [2,5].
-          - hand_size: int, Hand size \in [4,5].
-          - max_information_tokens: int, Number of information tokens (>=0)
-          - max_life_tokens: int, Number of life tokens (>=0)
-          - seed: int, Random seed.
-          - random_start_player: bool, Random start player.
-      *args: Optional arguments
-      **kwargs: Optional keyword arguments.
+		Args:
+			config: dict, With parameters for the game. Config takes the following
+				keys and values.
+					- colors: int, Number of colors \in [2,5].
+					- ranks: int, Number of ranks \in [2,5].
+					- players: int, Number of players \in [2,5].
+					- hand_size: int, Hand size \in [4,5].
+					- max_information_tokens: int, Number of information tokens (>=0)
+					- max_life_tokens: int, Number of life tokens (>=0)
+					- seed: int, Random seed.
+					- random_start_player: bool, Random start player.
+			*args: Optional arguments
+			**kwargs: Optional keyword arguments.
 
-    Raises:
-      AgentError: Custom exceptions.
-    """
-    raise NotImplementedError("Not implemeneted in abstract base class.")
+		Raises:
+			AgentError: Custom exceptions.
+		"""
+		raise NotImplementedError("Not implemeneted in abstract base class.")
 
-  def reset(self, config):
-    r"""Reset the agent with a new config.
+	def reset(self, config):
+		r"""Reset the agent with a new config.
 
-    Signals agent to reset and restart using a config dict.
+		Signals agent to reset and restart using a config dict.
 
-    Args:
-      config: dict, With parameters for the game. Config takes the following
-        keys and values.
-          - colors: int, Number of colors \in [2,5].
-          - ranks: int, Number of ranks \in [2,5].
-          - players: int, Number of players \in [2,5].
-          - hand_size: int, Hand size \in [4,5].
-          - max_information_tokens: int, Number of information tokens (>=0)
-          - max_life_tokens: int, Number of life tokens (>=0)
-          - seed: int, Random seed.
-          - random_start_player: bool, Random start player.
-    """
-    raise NotImplementedError("Not implemeneted in abstract base class.")
+		Args:
+			config: dict, With parameters for the game. Config takes the following
+				keys and values.
+					- colors: int, Number of colors \in [2,5].
+					- ranks: int, Number of ranks \in [2,5].
+					- players: int, Number of players \in [2,5].
+					- hand_size: int, Hand size \in [4,5].
+					- max_information_tokens: int, Number of information tokens (>=0)
+					- max_life_tokens: int, Number of life tokens (>=0)
+					- seed: int, Random seed.
+					- random_start_player: bool, Random start player.
+		"""
+		raise NotImplementedError("Not implemeneted in abstract base class.")
 
-  def act(self, observation):
-    """Act based on an observation.
+	def act(self, observation):
+		"""Act based on an observation.
 
-    Args:
-      observation: dict, containing observation from the view of this agent.
-        An example:
-        {'current_player': 0,
-         'current_player_offset': 1,
-         'deck_size': 40,
-         'discard_pile': [],
-         'fireworks': {'B': 0,
-                   'G': 0,
-                   'R': 0,
-                   'W': 0,
-                   'Y': 0},
-         'information_tokens': 8,
-         'legal_moves': [],
-         'life_tokens': 3,
-         'observed_hands': [[{'color': None, 'rank': -1},
-                         {'color': None, 'rank': -1},
-                         {'color': None, 'rank': -1},
-                         {'color': None, 'rank': -1},
-                         {'color': None, 'rank': -1}],
-                        [{'color': 'W', 'rank': 2},
-                         {'color': 'Y', 'rank': 4},
-                         {'color': 'Y', 'rank': 2},
-                         {'color': 'G', 'rank': 0},
-                         {'color': 'W', 'rank': 1}]],
-         'num_players': 2}]}
+		Args:
+			observation: dict, containing observation from the view of this agent.
+				An example:
+				{'current_player': 0,
+				 'current_player_offset': 1,
+				 'deck_size': 40,
+				 'discard_pile': [],
+				 'fireworks': {'B': 0,
+									 'G': 0,
+									 'R': 0,
+									 'W': 0,
+									 'Y': 0},
+				 'information_tokens': 8,
+				 'legal_moves': [],
+				 'life_tokens': 3,
+				 'observed_hands': [[{'color': None, 'rank': -1},
+												 {'color': None, 'rank': -1},
+												 {'color': None, 'rank': -1},
+												 {'color': None, 'rank': -1},
+												 {'color': None, 'rank': -1}],
+												[{'color': 'W', 'rank': 2},
+												 {'color': 'Y', 'rank': 4},
+												 {'color': 'Y', 'rank': 2},
+												 {'color': 'G', 'rank': 0},
+												 {'color': 'W', 'rank': 1}]],
+				 'num_players': 2}]}
 
-    Returns:
-      action: dict, mapping to a legal action taken by this agent. The following
-        actions are supported:
-          - { 'action_type': 'PLAY', 'card_index': int }
-          - { 'action_type': 'DISCARD', 'card_index': int }
-          - {
-              'action_type': 'REVEAL_COLOR',
-              'color': str,
-              'target_offset': int >=0
-            }
-          - {
-              'action_type': 'REVEAL_RANK',
-              'rank': str,
-              'target_offset': int >=0
-            }
-    """
-    raise NotImplementedError("Not implemented in Abstract Base class")
+		Returns:
+			action: dict, mapping to a legal action taken by this agent. The following
+				actions are supported:
+					- { 'action_type': 'PLAY', 'card_index': int }
+					- { 'action_type': 'DISCARD', 'card_index': int }
+					- {
+							'action_type': 'REVEAL_COLOR',
+							'color': str,
+							'target_offset': int >=0
+						}
+					- {
+							'action_type': 'REVEAL_RANK',
+							'rank': str,
+							'target_offset': int >=0
+						}
+		"""
+		raise NotImplementedError("Not implemented in Abstract Base class")
