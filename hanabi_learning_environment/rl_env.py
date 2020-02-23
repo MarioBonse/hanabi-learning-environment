@@ -28,7 +28,7 @@ e poi vediamo cosa c'è da eliminare.
 
 
 import abc
-import utility
+from .utility import *
 import tensorflow as tf
 import numpy as np
 from tf_agents.environments import py_environment
@@ -96,9 +96,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 		self.observation_encoder = pyhanabi.ObservationEncoder(
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
-		self.obs_stacker = utility.create_obs_stacker(self, history_size=self.history_size)
+		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
 		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float32)
-		self._action_spec = array_spec.BoundedArraySpec(shape=(1,), dtype=np.int16, minimum=0, maximum=self.num_moves()-1)
+		self._action_spec = array_spec.BoundedArraySpec(shape=(self.num_moves(),), dtype=np.int16, minimum=0, maximum=1)
 
 	def observation_spec(self):
 		return self._observation_spec
@@ -218,7 +218,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
-		current_agent_obs = utility.parse_observations(observations, self.num_moves(), self.obs_stacker)
+		current_agent_obs = parse_observations(observations, self.num_moves(), self.obs_stacker)
 
 		return ts.restart(current_agent_obs)
 
@@ -338,6 +338,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 		Raises:
 			AssertionError: When an illegal action is provided.
 		"""
+		action = int(np.argmax(action)
 		if isinstance(action, dict):
 			# Convert dict action HanabiMove
 			action = self._build_move(action)
@@ -370,8 +371,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 		"""
 
 		observation = self._make_observation_all_players()
-		observation, bla, bla = utility.parse_observation(observation, self.obs_stacker)
-		current_agent_obs = utility.parse_observations(observations, self.num_moves(), self.obs_stacker)
+		observation, bla, bla = parse_observation(observation, self.obs_stacker)
+		current_agent_obs = parse_observations(observations, self.num_moves(), self.obs_stacker)
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score

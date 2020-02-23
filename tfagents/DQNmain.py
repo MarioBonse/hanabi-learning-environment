@@ -48,6 +48,8 @@ import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import tf_py_environment
+from tf_agents.environments import suite_gym
+
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import py_metrics
 from tf_agents.metrics import tf_metrics
@@ -123,10 +125,21 @@ def train_eval(
   global_step = tf.compat.v1.train.get_or_create_global_step()
   with tf.compat.v2.summary.record_if(
       lambda: tf.math.equal(global_step % summary_interval, 0)):
-    env = rl_env.make('Hanabi-Full', num_players=num_players)
-    tf_env = tf_py_environment.TFPyEnvironment(env)
-    eval_py_env = rl_env.make('Hanabi-Full', num_players=num_players)
+    #tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
+    #eval_py_env = suite_gym.load(env_name)  
+    gym = False
+    if gym:
+        tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
+        eval_py_env = suite_gym.load(env_name)
+    else:
+        env = rl_env.make('Hanabi-Full', num_players=num_players)
+        #env.reset()
+        tf_env = tf_py_environment.TFPyEnvironment(env)
+        eval_py_env = rl_env.make('Hanabi-Full', num_players=num_players)
+        #eval_py_env.reset()
+        #eval_py_env.reset()
 
+    
     q_net = q_network.QNetwork(
         tf_env.time_step_spec().observation,
         tf_env.action_spec(),
@@ -187,10 +200,14 @@ def train_eval(
         num_parallel_calls=3,
         sample_batch_size=batch_size,
         num_steps=2).prefetch(3)
+    
+    for data in dataset:
+        experience, _ = data
+        train_op = common.function(tf_agent.train)(experience=experience)
 
-    iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
-    experience, _ = iterator.get_next()
-    train_op = common.function(tf_agent.train)(experience=experience)
+    #iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
+    #experience, _ = iterator.get_next()
+    #train_op = common.function(tf_agent.train)(experience=experience)
 
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
@@ -303,7 +320,7 @@ def train_eval(
 
 def main(_):
   logging.set_verbosity(logging.INFO)
-  tf.enable_resource_variables()
+  tf.compat.v1.enable_resource_variables()
   agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
   train_eval(
       FLAGS.root_dir,

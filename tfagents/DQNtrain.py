@@ -139,6 +139,10 @@ def train_eval(
   global_step = tf.compat.v1.train.get_or_create_global_step()
   with tf.compat.v2.summary.record_if(
       lambda: tf.math.equal(global_step % summary_interval, 0)):
+    """
+    tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
+    eval_py_env = suite_gym.load(env_name)
+    """
     tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
     eval_py_env = suite_gym.load(env_name)
 
@@ -314,7 +318,7 @@ def train_eval(
 
 def main(_):
     logging.set_verbosity(logging.INFO)
-    tf.enable_resource_variables()
+    tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
     train_eval(
         FLAGS.root_dir,
