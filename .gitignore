@@ -1,5 +1,10 @@
 *.pyc
 
+.idea/   
+.vscode/
+.vs/
+build/
+
 .venv
 venv
 .vscode
