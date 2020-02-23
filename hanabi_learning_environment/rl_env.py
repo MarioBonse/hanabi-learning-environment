@@ -98,7 +98,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
 		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float32)
-		self._action_spec = array_spec.BoundedArraySpec(shape=(self.num_moves(),), dtype=np.int16, minimum=0, maximum=1)
+		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int64, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
 		return self._observation_spec
@@ -219,8 +219,12 @@ class HanabiEnv(py_environment.PyEnvironment):
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
 		current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
-
-		return ts.restart(current_agent_obs)
+		print("Observations:", current_agent_obs)
+		print(type(current_agent_obs))
+		print("\n\nfirst reset")
+		x = ts.restart(current_agent_obs)
+		print("time step: ", x )
+		return x
 
 	def _step(self, action):
 		"""
@@ -338,7 +342,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 		Raises:
 			AssertionError: When an illegal action is provided.
 		"""
-		action = int(np.argmax(action)
+		#action = int(np.argmax(action))
+		if self._current_time_step.is_last():
+			self.reset()
 		if isinstance(action, dict):
 			# Convert dict action HanabiMove
 			action = self._build_move(action)
