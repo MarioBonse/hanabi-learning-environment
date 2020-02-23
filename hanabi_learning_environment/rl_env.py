@@ -28,6 +28,7 @@ e poi vediamo cosa c'è da eliminare.
 
 
 import abc
+import utility
 import tensorflow as tf
 import numpy as np
 from tf_agents.environments import py_environment
@@ -50,16 +51,6 @@ MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 FEDE COMMENT
 My understanding è che dobbiamo solo andare a toccare i primi 4 metodi di questa classe (escluso init).
 sull'init ho aggiunto una linea necessaria che setta self._current_time_step = None.
-
-confesso di essere ignorante di Abstract Classes e quindi non so se effettivamente 
-stia overridando la init di PyEnvironment... spero di sì e spero non sia un problema il fatto
-che la nostra init prenda in input la config, mentre l'abstract class non prevede input... bho dimmi te.
-
-Altra cosa, l'init dell'abstract class chiama quella funzione assert_members_are_not_overridden e non ho minimamente
-guardato cosa faccia e se sia problematica... I guess che tira fuori un errore se provi a instantiate un object
-che non abbia reset e step overriden? Mi sembra però un pelo dubbioso perchè nell'abstract ci sono i metodi 
-reset e step che dicono esplicitamente di non overridare, e dicono invece di cambiare _reset e _step (che infatti 
-ho messo nella nostra classe environment). Te capisci qualcosa?
 """
 
 class HanabiEnv(py_environment.PyEnvironment):
@@ -96,35 +87,24 @@ class HanabiEnv(py_environment.PyEnvironment):
 					- seed: int, Random seed.
 					- random_start_player: bool, Random start player.
 		"""
+		super().__init__()
 		assert isinstance(config, dict), "Expected config to be of type dict."
 		self.game = pyhanabi.HanabiGame(config)
-		self.gamma = 0.95
-		self._current_time_step = None
+		self.gamma = 0.95		# Parameter that could be configured to be passed via gin, but haven't done yet
+		self.history_size=4		# Parameter that could be configured to be passed via gin, but haven't done yet
 
 		self.observation_encoder = pyhanabi.ObservationEncoder(
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
+		self.obs_stacker = utility.create_obs_stacker(self, history_size=self.history_size)
+		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float32)
+		self._action_spec = array_spec.BoundedArraySpec(shape=(1,), dtype=np.int16, minimum=0, maximum=self.num_moves()-1)
 
 	def observation_spec(self):
-		"""
-		FEDE COMMENT
-		da implementare, deve ritornare un ArraySpec(shape=, dtype=)
-		vedere considerazioni in _step riguardo a come vogliamo mandare l'observation
-		"""
-		pass
+		return self._observation_spec
 	
 	def action_spec(self):
-		"""
-		FEDE COMMENT
-		da implementare, se non sbaglio questo tipo dovrebbe ritornare un int. O meglio, tf.agents  ha la sua classe 
-		ArraySpec che dobbiamo ritornare, ma per noi di fatto l'azione è un int, dobbiamo solo fare l'encoding di 
-		int in un ArraySpec penso... e mettiamo anche un bound inferiore (0) e superiore (num_moves) dentro arrayspec?
-		mi par di capire che si possa fare, ma non ho ancora minimamente guardato come.
-
-		Update:
-		Questo return che ho messo dovrebbe andare bene (not too sure about shape though.... bha)
-		"""
-		return array_spec.BoundedArraySpec(shape=(1,), dtype=np.int16, minimum=0, maximum=self.num_moves()-1)
+		return self._action_spec
 
 	def _reset(self):
 		"""
@@ -238,8 +218,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
+		current_agent_obs = utility.parse_observations(observations, self.num_moves(), self.obs_stacker)
 
-		return ts.restart(obs)
+		return ts.restart(current_agent_obs)
 
 	def _step(self, action):
 		"""
@@ -389,14 +370,16 @@ class HanabiEnv(py_environment.PyEnvironment):
 		"""
 
 		observation = self._make_observation_all_players()
+		observation, bla, bla = utility.parse_observation(observation, self.obs_stacker)
+		current_agent_obs = utility.parse_observations(observations, self.num_moves(), self.obs_stacker)
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
 		
 		if done:
-			return ts.termination(observation, reward)
+			return ts.termination(current_agent_obs, reward)
 		else:
-			return ts.transition(observation, reward, self.gamma)
+			return ts.transition(current_agent_obs, reward, self.gamma)
 
 	def vectorized_observation_shape(self):
 		"""Returns the shape of the vectorized observation.
