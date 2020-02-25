@@ -69,10 +69,7 @@ FLAGS = flags.FLAGS
 
 
 def observation_and_action_constraint_splitter(obs):
-    print("We are splitting the observation. ", obs)
-    print("OBservations = ", obs[0])
-    print("Legal moves = ", obs[1])
-    return obs[0], tf.math.logical_not[obs[1]]
+    return obs['observations'], obs['legal_moves']
 
 @gin.configurable
 def train_eval(
@@ -139,15 +136,11 @@ def train_eval(
         eval_py_env = suite_gym.load(env_name)
     else:
         env = rl_env.make('Hanabi-Full', num_players=num_players)
-        #env.reset()
         tf_env = tf_py_environment.TFPyEnvironment(env)
         eval_py_env = rl_env.make('Hanabi-Full', num_players=num_players)
-        #eval_py_env.reset()
-        #eval_py_env.reset()
-
     
     q_net = q_network.QNetwork(
-        tf_env.time_step_spec().observation,
+        tf_env.time_step_spec().observation['observations'],
         tf_env.action_spec(),
         fc_layer_params=fc_layer_params)
 
