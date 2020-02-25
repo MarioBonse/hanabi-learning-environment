@@ -90,7 +90,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
-		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64)
+		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=int)
 		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=int, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
@@ -210,7 +210,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 		print("\n\nfirst reset")
 		print("\n\n\n\n\nlegal moves are: {}\n\n\n".format(legal_moves))
 		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
-		return ts.restart(current_agent_obs)
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal moves': legal_moves}
+		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
 		"""
@@ -359,11 +361,14 @@ class HanabiEnv(py_environment.PyEnvironment):
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
+
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal moves': legal_moves}
 		
 		if done:
-			return ts.termination(current_agent_obs, reward)
+			return ts.termination(observations_and_legal_moves, reward)
 		else:
-			return ts.transition(current_agent_obs, reward, self.gamma)
+			return ts.transition(observations_and_legal_moves, reward, self.gamma)
 
 	def vectorized_observation_shape(self):
 		"""Returns the shape of the vectorized observation.
