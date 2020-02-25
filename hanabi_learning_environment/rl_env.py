@@ -210,8 +210,11 @@ class HanabiEnv(py_environment.PyEnvironment):
 		print("\n\nfirst reset")
 		print("\n\n\n\n\nlegal moves are: {}\n\n\n".format(legal_moves))
 		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
-		observations_and_legal_moves = {'observations': current_agent_obs,
-                                  		'legal moves': legal_moves}
+		#observations_and_legal_moves = {'observations': current_agent_obs,
+        #                          		'legal_moves': legal_moves}
+		observations_and_legal_moves = [current_agent_obs, legal_moves]
+		print(observations_and_legal_moves)
+		print(observations_and_legal_moves[0].shape, observations_and_legal_moves[1].shape)
 		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
@@ -362,9 +365,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
 
-		observations_and_legal_moves = {'observations': current_agent_obs,
-                                  		'legal moves': legal_moves}
-		
+		#observations_and_legal_moves = {'observations': current_agent_obs,
+        #                          		'legal_moves': legal_moves}
+		observations_and_legal_moves = [current_agent_obs, legal_moves]
 		if done:
 			return ts.termination(observations_and_legal_moves, reward)
 		else:

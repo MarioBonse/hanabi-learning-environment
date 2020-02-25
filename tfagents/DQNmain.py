@@ -69,7 +69,10 @@ FLAGS = flags.FLAGS
 
 
 def observation_and_action_constraint_splitter(obs):
-    return obs["observations"], tf.math.logical_not[obs["legal moves"]]
+    print("We are splitting the observation. ", obs)
+    print("OBservations = ", obs[0])
+    print("Legal moves = ", obs[1])
+    return obs[0], tf.math.logical_not[obs[1]]
 
 @gin.configurable
 def train_eval(
