@@ -26,7 +26,6 @@ Probabilmente ci sono import di troppo, ho semplicemente copia-incollato dal col
 e poi vediamo cosa c'è da eliminare.
 """
 
-
 import abc
 from .utility import *
 import tensorflow as tf
@@ -46,12 +45,6 @@ MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 #-------------------------------------------------------------------------------
 # Environment API
 #-------------------------------------------------------------------------------
-
-"""
-FEDE COMMENT
-My understanding è che dobbiamo solo andare a toccare i primi 4 metodi di questa classe (escluso init).
-sull'init ho aggiunto una linea necessaria che setta self._current_time_step = None.
-"""
 
 class HanabiEnv(py_environment.PyEnvironment):
 	"""RL interface to a Hanabi environment.
@@ -97,8 +90,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
-		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float32)
-		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int64, minimum=0, maximum=self.num_moves() - 1)
+		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64)
+		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=int, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
 		return self._observation_spec
@@ -107,11 +100,6 @@ class HanabiEnv(py_environment.PyEnvironment):
 		return self._action_spec
 
 	def _reset(self):
-		"""
-		FEDE COMMENT
-		Dobbiamo solo decidere come gestire le observation visto che per ora stiamo mandando 
-		le obs di tutti i player... vedi commento in _step()
-		"""
 		r"""Resets the environment for a new game.
 
 		Returns:
@@ -218,22 +206,16 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
-		current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
-		print("Observations:", current_agent_obs)
-		print(type(current_agent_obs))
+		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		print("\n\nfirst reset")
-		x = ts.restart(current_agent_obs)
-		print("time step: ", x )
-		return x
+		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
+		return ts.restart(current_agent_obs)
 
 	def _step(self, action):
 		"""
 		FEDE COMMENT
-		Per semplicità possiamo considerare action in input solo come int tra [0, num_moves()) e ignorare il caso in 
-		cui è un dizionario che per noi è solo scomodo... In questo modo _step prende in input "direttamente" 
-		(dopo aver arrotondato) l'output dell'agente (che è più intuitivo). Vogliamo eliminare il codice che gestisce l'azione
-		come fosse un dizionario? Penso che comunque sarebbe illegale se _step ricevesse un azione come dizionario per via di 
-		action_spec()
+		Vogliamo eliminare il codice che gestisce l'azione come fosse un dizionario? Penso che comunque sarebbe 
+		illegale se _step ricevesse un azione come dizionario per via di action_spec()
 		"""
 		"""Take one step in the game.
 
@@ -344,14 +326,16 @@ class HanabiEnv(py_environment.PyEnvironment):
 		"""
 		#action = int(np.argmax(action))
 		if self._current_time_step.is_last():
-			self.reset()
+			return self.reset()
 		if isinstance(action, dict):
 			# Convert dict action HanabiMove
 			action = self._build_move(action)
-		elif isinstance(action, int):
+		elif isinstance(action, np.ndarray) and (action.dtype == np.int64):
 			# Convert int action into a Hanabi move.
-			action = self.game.get_move(action)
+			action = self.game.get_move(int(action))
 		else:
+			print(int(action), type(action),action.dtype)
+			print(action)
 			raise ValueError("Expected action as dict or int, got: {}".format(
 					action))
 
@@ -364,21 +348,13 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		"""
 		FEDE COMMENT
-		per ora stiamo passando tutte le observation di tutti quanti (Nota che observation include info su chi
-		è il current player). Per scomporre l'observation c'è già la funzione run_experiment.parse_observation()
-		dobbiamo decidere se farlo già qua dentro o dentro il driver. Io sarei per farlo qua dentro.... 
-
-		Cose a cui pensare:
-		- observation_stacker (usato in parse_observation()) dev'essere uno per ogni agente... non ho 
-			ancora minimamente cagato come venga passato e se gliene possiamo dare più d'uno easy o no
-		- Turni dei giocatori come vengono gestiti? ne tiene traccia l'env? come gestire che non sia 
-			sempre lo stesso a cominciare? Se ne tiene traccia l'env dobbiamo passare qualche info
-			al driver oppure non serve? (a naso mi sembra che non serva)
+		Turni dei giocatori come vengono gestiti? ne tiene traccia l'env? come gestire che non sia sempre lo stesso a cominciare? 
+		Nota che per ora quando l'environment crea un oggetto HanabiGame inizializza il first player a caso.
+		Se l'env tiene traccia dei turnidobbiamo passare qualche info al driver oppure non serve? (a naso mi sembra che non serva)
 		"""
 
-		observation = self._make_observation_all_players()
-		observation, bla, bla = parse_observation(observation, self.obs_stacker)
-		current_agent_obs = parse_observations(observations, self.num_moves(), self.obs_stacker)
+		obs = self._make_observation_all_players()
+		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
