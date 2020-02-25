@@ -68,6 +68,9 @@ flags.DEFINE_bool('use_ddqn', False,
 FLAGS = flags.FLAGS
 
 
+def observation_and_action_constraint_splitter(obs):
+    return obs["observations"], tf.math.logical_not[obs["legal moves"]]
+
 @gin.configurable
 def train_eval(
     root_dir,
@@ -151,6 +154,7 @@ def train_eval(
         tf_env.action_spec(),
         q_network=q_net,
         optimizer=tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate),
+        observation_and_action_constraint_splitter = observation_and_action_constraint_splitter,
         epsilon_greedy=epsilon_greedy,
         target_update_tau=target_update_tau,
         target_update_period=target_update_period,
@@ -182,13 +186,15 @@ def train_eval(
     replay_observer = [replay_buffer.add_batch]
     initial_collect_policy = random_tf_policy.RandomTFPolicy(
         tf_env.time_step_spec(), tf_env.action_spec())
+    
+    collect_policy = tf_agent.collect_policy
+
     initial_collect_op = dynamic_step_driver.DynamicStepDriver(
         tf_env,
-        initial_collect_policy,
+        collect_policy,
         observers=replay_observer + train_metrics,
         num_steps=initial_collect_steps).run()
 
-    collect_policy = tf_agent.collect_policy
     collect_op = dynamic_step_driver.DynamicStepDriver(
         tf_env,
         collect_policy,
@@ -331,3 +337,4 @@ def main(_):
 if __name__ == '__main__':
   flags.mark_flag_as_required('root_dir')
   app.run(main)
+
