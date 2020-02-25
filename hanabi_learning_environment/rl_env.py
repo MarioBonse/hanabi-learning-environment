@@ -209,7 +209,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		print("\n\nfirst reset")
 		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
-		return ts.restart(current_agent_obs)
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal moves': legal_moves}
+		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
 		"""
@@ -358,11 +360,14 @@ class HanabiEnv(py_environment.PyEnvironment):
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
+
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal moves': legal_moves}
 		
 		if done:
-			return ts.termination(current_agent_obs, reward)
+			return ts.termination(observations_and_legal_moves, reward)
 		else:
-			return ts.transition(current_agent_obs, reward, self.gamma)
+			return ts.transition(observations_and_legal_moves, reward, self.gamma)
 
 	def vectorized_observation_shape(self):
 		"""Returns the shape of the vectorized observation.
