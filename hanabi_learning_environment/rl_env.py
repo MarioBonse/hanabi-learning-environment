@@ -90,7 +90,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
-		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64)
+		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=int)
 		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=int, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
