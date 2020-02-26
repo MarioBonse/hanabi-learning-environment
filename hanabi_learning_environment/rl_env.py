@@ -208,9 +208,6 @@ class HanabiEnv(py_environment.PyEnvironment):
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
 		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
-		print("\n\nfirst reset")
-		print("\n\n\n\n\nlegal moves are: {}\n\n\n".format(legal_moves))
-		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
 		observations_and_legal_moves = {'observations': current_agent_obs,
                                   		'legal_moves': np.logical_not(legal_moves)}
 		return ts.restart(observations_and_legal_moves)
