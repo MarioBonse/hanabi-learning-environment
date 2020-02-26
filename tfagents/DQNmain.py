@@ -207,7 +207,8 @@ def train_eval(
     print('\n\n\nStarting training from Replay Buffer\nCounting Iterations:')
     c = 0
     for data in dataset:
-        print(c)
+        if c % 100 == 0:
+            print(c)
         c += 1
         experience, _ = data
         train_op = common.function(tf_agent.train)(experience=experience)
