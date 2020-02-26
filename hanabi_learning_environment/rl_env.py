@@ -90,8 +90,9 @@ class HanabiEnv(py_environment.PyEnvironment):
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
-		self._observation_spec = array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=int)
-		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=int, minimum=0, maximum=self.num_moves() - 1)
+		self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
+                            	  'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_)}
+		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
 		return self._observation_spec
@@ -210,19 +211,11 @@ class HanabiEnv(py_environment.PyEnvironment):
 		print("\n\nfirst reset")
 		print("\n\n\n\n\nlegal moves are: {}\n\n\n".format(legal_moves))
 		print("time step: ", ts.restart(current_agent_obs) , "\n\n")
-		#observations_and_legal_moves = {'observations': current_agent_obs,
-        #                          		'legal_moves': legal_moves}
-		observations_and_legal_moves = [current_agent_obs, legal_moves]
-		print(observations_and_legal_moves)
-		print(observations_and_legal_moves[0].shape, observations_and_legal_moves[1].shape)
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal_moves': np.logical_not(legal_moves)}
 		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
-		"""
-		FEDE COMMENT
-		Vogliamo eliminare il codice che gestisce l'azione come fosse un dizionario? Penso che comunque sarebbe 
-		illegale se _step ricevesse un azione come dizionario per via di action_spec()
-		"""
 		"""Take one step in the game.
 
 		Args:
@@ -365,9 +358,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
 
-		#observations_and_legal_moves = {'observations': current_agent_obs,
-        #                          		'legal_moves': legal_moves}
-		observations_and_legal_moves = [current_agent_obs, legal_moves]
+		observations_and_legal_moves = {'observations': current_agent_obs,
+                                  		'legal_moves': np.logical_not(legal_moves)}
 		if done:
 			return ts.termination(observations_and_legal_moves, reward)
 		else:
