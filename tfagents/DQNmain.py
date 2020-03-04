@@ -212,7 +212,7 @@ def train_eval(
         c += 1
         experience, _ = data
         train_op = common.function(tf_agent.train)(experience=experience)
-
+    print("end training")
     #iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
     #experience, _ = iterator.get_next()
     #train_op = common.function(tf_agent.train)(experience=experience)
