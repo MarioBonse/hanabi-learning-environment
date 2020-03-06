@@ -185,6 +185,7 @@ def train_eval(
     
     collect_policy = tf_agent.collect_policy
 
+    #FIXME We need to use the DynamicEpisodeDriver
     initial_collect_op = dynamic_step_driver.DynamicStepDriver(
         tf_env,
         collect_policy,
