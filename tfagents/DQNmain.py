@@ -226,7 +226,7 @@ def train_eval(
     dataset = replay_buffer.as_dataset(
         num_parallel_calls=3,
         sample_batch_size=batch_size,
-        num_episodes=2).prefetch(3)
+        num_steps=2).prefetch(3)
     
     print('\n\n\nStarting training from Replay Buffer\nCounting Iterations:')
     c = 0
