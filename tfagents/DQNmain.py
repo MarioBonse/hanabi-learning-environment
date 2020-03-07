@@ -46,7 +46,7 @@ from six.moves import range
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
 from tf_agents.agents.dqn import dqn_agent
-from tf_agents.drivers import dynamic_step_driver
+from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
 from tf_agents.environments import suite_gym
 
@@ -162,6 +162,29 @@ def train_eval(
         summarize_grads_and_vars=summarize_grads_and_vars,
         train_step_counter=global_step)
 
+    q_net_2 = q_network.QNetwork(
+        tf_env.time_step_spec().observation['observations'],
+        tf_env.action_spec(),
+        fc_layer_params=fc_layer_params)
+
+    # TODO(b/127301657): Decay epsilon based on global step, cf. cl/188907839
+    tf_agent_2 = agent_class(
+        tf_env.time_step_spec(),
+        tf_env.action_spec(),
+        q_network=q_net_2,
+        optimizer=tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate),
+        observation_and_action_constraint_splitter = observation_and_action_constraint_splitter,
+        epsilon_greedy=epsilon_greedy,
+        target_update_tau=target_update_tau,
+        target_update_period=target_update_period,
+        td_errors_loss_fn=common.element_wise_squared_loss,
+        gamma=gamma,
+        reward_scale_factor=reward_scale_factor,
+        gradient_clipping=gradient_clipping,
+        debug_summaries=debug_summaries,
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=global_step)
+
     # replay buffer 
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent.collect_data_spec,
@@ -184,25 +207,26 @@ def train_eval(
         tf_env.time_step_spec(), tf_env.action_spec())
     
     collect_policy = tf_agent.collect_policy
+    collect_policy_2  = tf_agent_2.collect_policy
 
-    initial_collect_op = dynamic_step_driver.DynamicStepDriver(
+    initial_collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
+        tf_env,
+        [collect_policy, collect_policy_2],
+        observers=replay_observer + train_metrics,
+        num_episodes=initial_collect_steps).run()
+
+    collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
         tf_env,
         collect_policy,
         observers=replay_observer + train_metrics,
-        num_steps=initial_collect_steps).run()
+        num_episodes=collect_steps_per_iteration).run()
 
-    collect_op = dynamic_step_driver.DynamicStepDriver(
-        tf_env,
-        collect_policy,
-        observers=replay_observer + train_metrics,
-        num_steps=collect_steps_per_iteration).run()
-
-    print('\n\n\n\nFinished running the Driver\n\n\n')
+    print('\nFinished running the Driver\n')
     # Dataset generates trajectories with shape [Bx2x...]
     dataset = replay_buffer.as_dataset(
         num_parallel_calls=3,
         sample_batch_size=batch_size,
-        num_steps=2).prefetch(3)
+        num_episodes=2).prefetch(3)
     
     print('\n\n\nStarting training from Replay Buffer\nCounting Iterations:')
     c = 0
