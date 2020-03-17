@@ -209,7 +209,8 @@ def train_eval(
     collect_policy = tf_agent.collect_policy
     collect_policy_2  = tf_agent_2.collect_policy
 
-    initial_collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
+    #FIXME We need to use the DynamicEpisodeDriver
+    initial_collect_op = dynamic_step_driver.DynamicStepDriver(
         tf_env,
         [collect_policy, collect_policy_2],
         observers=replay_observer + train_metrics,
