@@ -20,12 +20,6 @@ from __future__ import print_function
 from hanabi_learning_environment import pyhanabi
 from hanabi_learning_environment.pyhanabi import color_char_to_idx
 
-"""
-FEDE COMMENT
-Probabilmente ci sono import di troppo, ho semplicemente copia-incollato dal colab che mi hai mandato
-e poi vediamo cosa c'è da eliminare.
-"""
-
 import abc
 from .utility import *
 import tensorflow as tf
@@ -530,9 +524,7 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
 		prefixes=(pyhanabi_path,)
 		assert pyhanabi.try_cdef(prefixes=prefixes), "cdef failed to load"
 		assert pyhanabi.try_load(prefixes=prefixes), "library failed to load"
-
-	if (environment_name == "Hanabi-Full" or
-			environment_name == "Hanabi-Full-CardKnowledge"):
+	if (environment_name == "Hanabi-Full"):
 		return HanabiEnv(
 				config={
 						"colors":
@@ -547,6 +539,22 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
 								3,
 						"observation_type":
 								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
+				})
+	elif environment_name == "Hanabi-Full-CardKnowledge":
+    		return HanabiEnv(
+				config={
+						"colors":
+								5,
+						"ranks":
+								5,
+						"players":
+								num_players,
+						"max_information_tokens":
+								8,
+						"max_life_tokens":
+								3,
+						"observation_type":
+								pyhanabi.AgentObservationType.SEER.value
 				})
 	elif environment_name == "Hanabi-Full-Minimal":
 		return HanabiEnv(

@@ -135,9 +135,9 @@ def train_eval(
         tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
         eval_py_env = suite_gym.load(env_name)
     else:
-        env = rl_env.make('Hanabi-Full', num_players=num_players)
+        env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)
         tf_env = tf_py_environment.TFPyEnvironment(env)
-        eval_py_env = rl_env.make('Hanabi-Full', num_players=num_players)
+        eval_py_env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)
     
     q_net = q_network.QNetwork(
         tf_env.time_step_spec().observation['observations'],
@@ -217,7 +217,7 @@ def train_eval(
 
     collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
         tf_env,
-        collect_policy,
+        [collect_policy, collect_policy_2],
         observers=replay_observer + train_metrics,
         num_episodes=collect_steps_per_iteration).run()
 
@@ -228,15 +228,31 @@ def train_eval(
         sample_batch_size=batch_size,
         num_steps=2).prefetch(3)
     
-    print('\n\n\nStarting training from Replay Buffer\nCounting Iterations:')
+    print('\n\n\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
+    c = 0
+    for data in dataset:
+        if c % 500 == 0:
+            print(c)
+        c += 1
+        experience, _ = data
+        train_op = common.function(tf_agent.train)(experience=experience)
+    print("End training Agent 1")
+    
+    
+    dataset = replay_buffer.as_dataset(
+        num_parallel_calls=3,
+        sample_batch_size=batch_size,
+        num_steps=2).prefetch(3)
+    
+    print('\n\n\nStarting partial training Agent 2 from Replay Buffer\nCounting Iterations:')
     c = 0
     for data in dataset:
         if c % 100 == 0:
             print(c)
         c += 1
         experience, _ = data
-        train_op = common.function(tf_agent.train)(experience=experience)
-    print("end training")
+        train_op_2 = common.function(tf_agent_2.train)(experience=experience)
+    print("End partial training Agent 2")
     #iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
     #experience, _ = iterator.get_next()
     #train_op = common.function(tf_agent.train)(experience=experience)
@@ -292,7 +308,7 @@ def train_eval(
 
       collect_call = sess.make_callable(collect_op)
       global_step_call = sess.make_callable(global_step)
-      train_step_call = sess.make_callable([train_op, summary_ops])
+      train_step_call = sess.make_callable([train_op, train_op_2, summary_ops])
 
       timed_at_step = global_step_call()
       collect_time = 0
@@ -348,7 +364,6 @@ def train_eval(
               global_step=global_step_val,
               callback=eval_metrics_callback,
           )
-
 
 def main(_):
   logging.set_verbosity(logging.INFO)
