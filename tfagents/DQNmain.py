@@ -241,6 +241,8 @@ def train_eval(
             if c % 500 == 0:
                 print(c)
             c += 1
+            if c == 25000:
+                break
             experience, _ = data
             train_op = common.function(tf_agent.train)(experience=experience)
         print("End training Agent 1")
@@ -256,6 +258,8 @@ def train_eval(
             if c % 100 == 0:
                 print(c)
             c += 1
+            if c == 25000:
+                break
             experience, _ = data
             train_op_2 = common.function(
                 tf_agent_2.train)(experience=experience)
