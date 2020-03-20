@@ -139,7 +139,7 @@ def train_eval(
 
 
     # create an agent and a network 
-    tf_agent = agent_class(
+    tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
         tf_env.action_spec(),
         q_network= q_network.QNetwork(
@@ -184,11 +184,11 @@ def train_eval(
 
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-        tf_agent.collect_data_spec,
+        tf_agent_1.collect_data_spec,
         batch_size=tf_env.batch_size,
         max_length=replay_buffer_capacity)
 
-    eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent.policy)
+    eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
 
     # metrics
     train_metrics = [
@@ -200,12 +200,12 @@ def train_eval(
 
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
-        agent=tf_agent,
+        agent=tf_agent_1,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
 
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
-        policy=tf_agent.policy,)
+        policy=tf_agent_1.policy,)
 
     rb_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'replay_buffer'),
@@ -218,14 +218,14 @@ def train_eval(
     train_time = 0
     for global_step_val in range(num_iterations):
         # the two policies we use to collect data
-        collect_policy = tf_agent.collect_policy
+        collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
 
         # episode driver 
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
-            [collect_policy, collect_policy_2],
+            [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
             num_episodes=collect_steps_per_iteration).run()
         collect_time += time.time() - start_time
@@ -250,7 +250,7 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(tf_agent.train(experience=experience).loss)
+            losses.append(tf_agent_1.train(experience=experience).loss)
         losses = tf.stack(losses)
         print("End training Agent 1: it took {}".format(time.time() - start_time))
         print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
