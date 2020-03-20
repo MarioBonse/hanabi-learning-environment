@@ -14,6 +14,7 @@
 # limitations under the License.
 
 # Lint as: python2, python3
+
 r"""Train and Eval DQN.
 
 To run:
@@ -59,6 +60,9 @@ from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
 
+from tqdm import tqdm
+
+
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_integer('num_iterations', 100000,
@@ -86,7 +90,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=1,
+    train_steps_per_iteration=1000,
     batch_size=64,
     learning_rate=1e-3,
     gamma=0.99,
@@ -193,6 +197,7 @@ def train_eval(
         tf_metrics.AverageReturnMetric(),
         tf_metrics.AverageEpisodeLengthMetric(),
     ]
+
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
         agent=tf_agent,
@@ -233,44 +238,54 @@ def train_eval(
             sample_batch_size=batch_size,
             num_steps=2).prefetch(3)
 
-        print('\n\n\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
+        print('\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
+
+        losses = []
         c = 0
+        start_time  = time.time()
         for data in dataset:
-            if c % 500 == 0:
+            if c % 100 == 0:
                 print(c)
             c += 1
-            if c == 500:
+            if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            train_op = common.function(tf_agent.train)(experience=experience)
-        print("End training Agent 1")
+            losses.append(tf_agent.train(experience=experience).loss)
+        losses = tf.stack(losses)
+        print("End training Agent 1: it took {}".format(time.time() - start_time))
+        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
+        start_time  = time.time()
 
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
             num_steps=2).prefetch(3)
 
-        print('\n\n\nStarting partial training Agent 2 from Replay Buffer\nCounting Iterations:')
+        print('\nStarting partial training Agent 2 from Replay Buffer\nCounting Iterations:')
+        losses = []
         c = 0
+        losses = []
+        start_time  = time.time()
         for data in dataset:
             if c % 100 == 0:
                 print(c)
             c += 1
-            if c == 500:
+            if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            train_op_2 = common.function(
-                tf_agent_2.train)(experience=experience)
-        print("End partial training Agent 2")
-
+            losses.append(tf_agent_2.train(experience=experience).loss)
+        losses = tf.stack(losses)
+        print("End training Agent 2: it took {}".format(time.time() - start_time))
+        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
+        
         if global_step_val % train_checkpoint_interval == 0:
-            train_checkpointer.save()
+            train_checkpointer.save(global_step = global_step_val)
 
         if global_step_val % policy_checkpoint_interval == 0:
-            policy_checkpointer.save()
+            policy_checkpointer.save(global_step = global_step_val)
 
         if global_step_val % rb_checkpoint_interval == 0:
-            rb_checkpointer.save()
+            rb_checkpointer.save(global_step = global_step_val)
 
 
 
