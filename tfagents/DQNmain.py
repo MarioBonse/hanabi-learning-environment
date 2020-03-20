@@ -75,7 +75,6 @@ def observation_and_action_constraint_splitter(obs):
 @gin.configurable
 def train_eval(
     root_dir,
-    env_name='CartPole-v0',
     num_iterations=100000,
     fc_layer_params=(100,),
     # Params for collect
@@ -131,17 +130,12 @@ def train_eval(
             lambda: tf.math.equal(global_step % summary_interval, 0)):
         #tf_env = tf_py_environment.TFPyEnvironment(suite_gym.load(env_name))
         #eval_py_env = suite_gym.load(env_name)
-        gym = False
-        if gym:
-            tf_env = tf_py_environment.TFPyEnvironment(
-                suite_gym.load(env_name))
-            eval_py_env = suite_gym.load(env_name)
-        else:
-            env = rl_env.make('Hanabi-Full-CardKnowledge',
-                              num_players=num_players)
-            tf_env = tf_py_environment.TFPyEnvironment(env)
-            eval_py_env = rl_env.make(
-                'Hanabi-Full-CardKnowledge', num_players=num_players)
+
+        env = rl_env.make('Hanabi-Full-CardKnowledge',
+                            num_players=num_players)
+        tf_env = tf_py_environment.TFPyEnvironment(env)
+        eval_py_env = rl_env.make(
+            'Hanabi-Full-CardKnowledge', num_players=num_players)
 
         q_net = q_network.QNetwork(
             tf_env.time_step_spec().observation['observations'],
