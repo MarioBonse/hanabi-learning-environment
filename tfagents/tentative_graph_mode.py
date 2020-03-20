@@ -233,7 +233,7 @@ def train_eval(
             sample_batch_size=batch_size,
             num_steps=2).prefetch(3)
         
-        partial_training(dataset, tf_agent, tf_agent_2 n_steps=500)
+        partial_training(dataset, tf_agent, tf_agent_2, n_steps=5000)
         
         print("End training Agent 1")
 
