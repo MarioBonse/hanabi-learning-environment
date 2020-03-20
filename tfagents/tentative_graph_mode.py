@@ -249,7 +249,7 @@ def train_eval(
 
 
 @tf.function
-def partial_training(dataset, tf_agent, tf_agent_2 n_steps=500):
+def partial_training(dataset, tf_agent, tf_agent_2, n_steps=500):
     print('\n\n\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
     c = 0
     for data in dataset:
