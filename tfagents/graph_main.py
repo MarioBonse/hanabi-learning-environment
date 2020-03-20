@@ -255,6 +255,9 @@ def train_eval(
             rb_checkpointer.save(global_step = global_step_val)
 
 
+#FIXME actually losses probably need to be dealt with differently because I think that when I redefine losses_1
+# using tf.stack I create a tensor and tensor variables are all in global scope  (they actually don't even know what scope is)
+# so an InaccessibleTensorError is raised... Not sure I understand everything though 
 #TODO change this function so that it actually can run in batches and uses tensors as much as possible (inluding losses)
 @tf.function
 def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
