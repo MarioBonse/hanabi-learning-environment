@@ -83,7 +83,7 @@ def train_eval(
     fc_layer_params=(100,),
     # Params for collect
     initial_collect_steps=1000,
-    collect_steps_per_iteration=1000,
+    collect_episodes_per_iteration=1000,
     epsilon_greedy=0.1,
     replay_buffer_capacity=100000,
     # Params for target update
@@ -231,8 +231,9 @@ def train_eval(
             tf_env,
             [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
-            num_episodes=collect_steps_per_iteration).run()
-        print('\nFinished running the Driver, it took {}\n'.format(time.time() - start_time))
+            num_episodes=collect_episodes_per_iteration).run()
+        print('\nFinished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
+                                                                                           collect_episodes_per_iteration))
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
