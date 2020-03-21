@@ -239,48 +239,29 @@ def train_eval(
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
-            num_steps=2).prefetch(3)
+            num_steps=2).prefetch(10)
 
-        print('\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
+        print('\nStarting partial training of both Agents from Replay Buffer\nCounting Steps:')
 
-        losses = []
+        losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
+        losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
         c = 0
         start_time  = time.time()
         for data in dataset:
-            
-            if c % 100 == 0:
+            if c % 500 == 0:
                 print(c)
             c += 1
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(agent_1_train_function(experience=experience).loss)
-        losses = tf.stack(losses)
-        print("End training Agent 1: it took {}".format(time.time() - start_time))
-        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
-        start_time  = time.time()
-
-        dataset = replay_buffer.as_dataset(
-            num_parallel_calls=3,
-            sample_batch_size=batch_size,
-            num_steps=2).prefetch(3)
-
-        print('\nStarting partial training Agent 2 from Replay Buffer\nCounting Iterations:')
-        losses = []
-        c = 0
-        losses = []
-        start_time  = time.time()
-        for data in dataset:
-            if c % 100 == 0:
-                print(c)
-            c += 1
-            if c == train_steps_per_iteration:
-                break
-            experience, _ = data
-            losses.append(agent_2_train_function(experience=experience).loss)
-        losses = tf.stack(losses)
-        print("End training Agent 2: it took {}".format(time.time() - start_time))
-        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
+            losses_1.append(agent_1_train_function(experience=experience).loss)
+            losses_2.append(agent_2_train_function(experience=experience).loss)
+        losses_1 = losses_1.stack()
+        losses_2 = losses_2.stack()
+        print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
+        print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
+        print('Mean loss for Agent 2 is: {}'.format(tf.math.reduce_mean(losses_2)))
+        
         
         if global_step_val % train_checkpoint_interval == 0:
             train_checkpointer.save(global_step = global_step_val)
