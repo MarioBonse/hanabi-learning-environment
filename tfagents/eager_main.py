@@ -251,7 +251,7 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(tf_agent_1.train(experience=experience).loss)
+            losses.append(common.function(tf_agent_1.train)(experience=experience).loss)
         losses = tf.stack(losses)
         print("End training Agent 1: it took {}".format(time.time() - start_time))
         print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
@@ -274,7 +274,7 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(tf_agent_2.train(experience=experience).loss)
+            losses.append(common.function(tf_agent_2.train)(experience=experience).loss)
         losses = tf.stack(losses)
         print("End training Agent 2: it took {}".format(time.time() - start_time))
         print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
