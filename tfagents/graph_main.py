@@ -180,6 +180,9 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
 
+    agent_1_train_function = common.function(tf_agent_1.train)
+    agent_2_train_function = common.function(tf_agent_2.train)
+    
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent_1.collect_data_spec,
@@ -239,7 +242,7 @@ def train_eval(
         print('\n\n\nStarting epoch training of both Agents from Replay Buffer\nCounting Steps:')
         start_time  = time.time()
         
-        losses_1, losses_2 = partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=train_steps_per_iteration)
+        losses_1, losses_2 = partial_training(dataset, agent_1_train_function, agent_2_train_function, n_steps=train_steps_per_iteration)
         
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
@@ -260,7 +263,7 @@ def train_eval(
 # so an InaccessibleTensorError is raised... Not sure I understand everything though 
 #TODO change this function so that it actually can run in batches and uses tensors as much as possible (inluding losses)
 @tf.function
-def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
+def partial_training(dataset, agent_1_train_function, agent_2_train_function, n_steps=500):
     c = 0
     losses_1 = tf.TensorArray(tf.float32, size=n_steps)
     losses_2 = tf.TensorArray(tf.float32, size=n_steps)
@@ -270,8 +273,8 @@ def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
         if c == n_steps - 1:
             break
         experience, _ = data
-        losses_1 = losses_1.write(c, tf_agent_1.train(experience=experience).loss)
-        losses_2 = losses_2.write(c, tf_agent_2.train(experience=experience).loss)
+        losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
+        losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
         c += 1
     
     return losses_1.stack(), losses_2.stack()
