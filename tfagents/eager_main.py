@@ -80,12 +80,11 @@ def observation_and_action_constraint_splitter(obs):
 def train_eval(
     root_dir,
     num_iterations=100000,
-    fc_layer_params=(100,),
+    fc_layer_params=(512, 256, 128),
     # Params for collect
-    initial_collect_steps=1000,
     collect_episodes_per_iteration=1000,
     epsilon_greedy=0.1,
-    replay_buffer_capacity=100000,
+    replay_buffer_capacity=1000000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
@@ -98,19 +97,15 @@ def train_eval(
     gradient_clipping=None,
     # Params for eval
     num_eval_episodes=10,
-    eval_interval=1000,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=10000,
-    policy_checkpoint_interval=5000,
-    rb_checkpoint_interval=20000,
-    log_interval=1000,
-    summary_interval=1000,
+    train_checkpoint_interval=10,
+    policy_checkpoint_interval=5,
+    rb_checkpoint_interval=20,
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
     summarize_grads_and_vars=False,
-    eval_metrics_callback=None,
-        num_players=2):
+    num_players=2):
     """A simple train and eval for DQN."""
     root_dir = os.path.expanduser(root_dir)
     train_dir = os.path.join(root_dir, 'train')
@@ -142,11 +137,10 @@ def train_eval(
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
         tf_env.action_spec(),
-        q_network= q_network.QNetwork(
-                                        tf_env.time_step_spec().observation['observations'],
-                                        tf_env.action_spec(),
-                                        fc_layer_params=fc_layer_params
-                                        ),
+        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
+                                      tf_env.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
@@ -164,11 +158,10 @@ def train_eval(
     tf_agent_2 = agent_class(
         tf_env.time_step_spec(),
         tf_env.action_spec(),
-        q_network= q_network.QNetwork(
-                                        tf_env.time_step_spec().observation['observations'],
-                                        tf_env.action_spec(),
-                                        fc_layer_params=fc_layer_params
-                                        ),
+        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
+                                      tf_env.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
