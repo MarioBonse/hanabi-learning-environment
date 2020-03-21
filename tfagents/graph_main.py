@@ -265,11 +265,13 @@ def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
     losses_1 = []
     print('SEMO Dentro')
     print(losses_1)
+    print(type(losses_1))
+    print(type(c))
     print('ho printato')
     losses_2 = []
     for data in dataset:
         if c % 500 == 0:
-            tf.Print(c)
+            tf.print(c)
         c += 1
         if c == n_steps:
             break
