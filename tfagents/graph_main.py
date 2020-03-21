@@ -263,26 +263,19 @@ def train_eval(
 @tf.function
 def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
     c = 0
-    losses_1 = []
-    losses_2 = []
+    losses_1 = tf.TensorArray(tf.float32, size=n_steps)
+    losses_2 = tf.TensorArray(tf.float32, size=n_steps)
     for data in dataset:
         if c % 500 == 0:
             tf.print(c)
-        c += 1
-        if c == n_steps:
+        if c == n_steps - 1:
             break
         experience, _ = data
-        losses_1.append(tf_agent_1.train(experience=experience).loss)
-        losses_2.append(tf_agent_2.train(experience=experience).loss)
+        losses_1 = losses_1.write(c, tf_agent_1.train(experience=experience).loss)
+        losses_2 = losses_2.write(c, tf_agent_2.train(experience=experience).loss)
+        c += 1
     
-    print('siamo dopo il for', len(losses_1))
-    tf.print(losses_1[0])
-    print(type(losses_1))
-    print('ho printato')
-    losses_1 = tf.stack(losses_1)
-    losses_2 = tf.stack(losses_2)
-    
-    return losses_1, losses_2
+    return losses_1.stack(), losses_2.stack()
 
 
 
