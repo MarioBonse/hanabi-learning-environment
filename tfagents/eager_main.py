@@ -254,8 +254,8 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses_1.append(agent_1_train_function(experience=experience).loss)
-            losses_2.append(agent_2_train_function(experience=experience).loss)
+            losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
+            losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
         losses_1 = losses_1.stack()
         losses_2 = losses_2.stack()
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
