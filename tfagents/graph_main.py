@@ -239,7 +239,7 @@ def train_eval(
         print('\n\n\nStarting epoch training of both Agents from Replay Buffer\nCounting Steps:')
         start_time  = time.time()
         
-        losses_1, losses_2 = partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=5000)
+        losses_1, losses_2 = partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=train_steps_per_iteration)
         
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
