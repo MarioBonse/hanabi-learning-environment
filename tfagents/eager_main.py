@@ -182,6 +182,9 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
 
+    agent_1_train_function = common.function(tf_agent_1.train)
+    agent_2_train_function = common.function(tf_agent_2.train)
+    
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent_1.collect_data_spec,
@@ -251,7 +254,7 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(common.function(tf_agent_1.train)(experience=experience).loss)
+            losses.append(agent_1_train_function(experience=experience).loss)
         losses = tf.stack(losses)
         print("End training Agent 1: it took {}".format(time.time() - start_time))
         print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
@@ -274,7 +277,7 @@ def train_eval(
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(common.function(tf_agent_2.train)(experience=experience).loss)
+            losses.append(agent_2_train_function(experience=experience).loss)
         losses = tf.stack(losses)
         print("End training Agent 2: it took {}".format(time.time() - start_time))
         print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
