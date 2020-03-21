@@ -157,7 +157,8 @@ def train_eval(
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
-
+    
+    print(tf_agent_1.collect_data_spec)
     # Second agent. we can have as many as we want
     tf_agent_2 = agent_class(
         tf_env.time_step_spec(),
@@ -263,11 +264,6 @@ def train_eval(
 def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
     c = 0
     losses_1 = []
-    print('SEMO Dentro')
-    print(losses_1)
-    print(type(losses_1))
-    print(type(c))
-    print('ho printato')
     losses_2 = []
     for data in dataset:
         if c % 500 == 0:
