@@ -90,7 +90,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=1000,
+    train_steps_per_iteration=2000,
     batch_size=64,
     learning_rate=1e-3,
     gamma=0.99,
@@ -158,7 +158,6 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
     
-    print('\n\n\n\nCollect Data Spec:\n',tf_agent_1.collect_data_spec)
     # Second agent. we can have as many as we want
     tf_agent_2 = agent_class(
         tf_env.time_step_spec(),
