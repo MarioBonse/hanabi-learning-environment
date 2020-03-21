@@ -83,7 +83,7 @@ def train_eval(
     fc_layer_params=(100,),
     # Params for collect
     initial_collect_steps=1000,
-    collect_steps_per_iteration=1,
+    collect_steps_per_iteration=100,
     epsilon_greedy=0.1,
     replay_buffer_capacity=100000,
     # Params for target update
@@ -158,7 +158,7 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
     
-    print(tf_agent_1.collect_data_spec)
+    print('\n\n\n\nCollect Data Spec:\n',tf_agent_1.collect_data_spec)
     # Second agent. we can have as many as we want
     tf_agent_2 = agent_class(
         tf_env.time_step_spec(),
