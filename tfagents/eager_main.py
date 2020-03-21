@@ -83,15 +83,15 @@ def train_eval(
     fc_layer_params=(100,),
     # Params for collect
     initial_collect_steps=1000,
-    collect_steps_per_iteration=100,
+    collect_steps_per_iteration=1000,
     epsilon_greedy=0.1,
     replay_buffer_capacity=100000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=2000,
-    batch_size=64,
+    train_steps_per_iteration=100,
+    batch_size=128,
     learning_rate=1e-3,
     gamma=0.99,
     reward_scale_factor=1.0,
@@ -238,7 +238,7 @@ def train_eval(
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
-            num_steps=2).prefetch(10)
+            num_steps=2).prefetch(5)
 
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')
 
@@ -247,13 +247,10 @@ def train_eval(
         c = 0
         start_time  = time.time()
         for data in dataset:
-            if c % 500 == 0:
+            if c % 20 == 0:
                 print(c)
             if c == train_steps_per_iteration:
                 break
-            print(data)
-            print(type(data))
-            break
             experience, _ = data
             losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
             losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
