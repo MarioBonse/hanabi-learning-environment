@@ -225,7 +225,7 @@ def train_eval(
         collect_policy_2 = tf_agent_2.collect_policy
 
         # episode driver
-        print('\n\n\nStarting to run the Driver\n')
+        print('\n\n\nStarting to run the Driver\n\n')
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,

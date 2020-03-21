@@ -90,7 +90,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=2000,
+    train_steps_per_iteration=20,
     batch_size=64,
     learning_rate=1e-3,
     gamma=0.99,
@@ -225,7 +225,7 @@ def train_eval(
         collect_policy_2 = tf_agent_2.collect_policy
 
         # episode driver
-        print('\n\n\nStarting to run the Driver\n')
+        print('\n\n\nStarting to run the Driver\n\n')
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
@@ -235,6 +235,7 @@ def train_eval(
         print('\nFinished running the Driver, it took {}\n'.format(time.time() - start_time))
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
+        print('Batch size is', batch_size)
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
