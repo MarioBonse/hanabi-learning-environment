@@ -224,16 +224,15 @@ def train_eval(
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
 
-        # episode driver 
+        # episode driver
+        print('\n\n\nStarting to run the Driver\n')
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
             [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
             num_episodes=collect_steps_per_iteration).run()
-        collect_time += time.time() - start_time
-        start_time = time.time()
-        print('\nFinished running the Driver\n')
+        print('\nFinished running the Driver, it took {}\n'.format(time.time() - start_time))
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
@@ -241,7 +240,7 @@ def train_eval(
             sample_batch_size=batch_size,
             num_steps=2).prefetch(10)
 
-        print('\nStarting partial training of both Agents from Replay Buffer\nCounting Steps:')
+        print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')
 
         losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
         losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
@@ -252,6 +251,9 @@ def train_eval(
                 print(c)
             if c == train_steps_per_iteration:
                 break
+            print(data)
+            print(type(data))
+            break
             experience, _ = data
             losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
             losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
@@ -260,7 +262,7 @@ def train_eval(
         losses_2 = losses_2.stack()
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
-        print('Mean loss for Agent 2 is: {}'.format(tf.math.reduce_mean(losses_2)))
+        print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
         
         if global_step_val % train_checkpoint_interval == 0:
