@@ -90,7 +90,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=100,
+    train_steps_per_iteration=5000,
     batch_size=128,
     learning_rate=1e-3,
     gamma=0.99,
@@ -248,7 +248,7 @@ def train_eval(
         c = 0
         start_time  = time.time()
         for data in dataset:
-            if c % 20 == 0:
+            if c % 500 == 0:
                 print(c)
             if c == train_steps_per_iteration:
                 break
