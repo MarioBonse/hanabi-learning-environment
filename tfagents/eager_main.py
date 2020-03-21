@@ -82,14 +82,14 @@ def train_eval(
     num_iterations=100000,
     fc_layer_params=(128, 64),
     # Params for collect
-    collect_episodes_per_iteration=1000,
+    collect_episodes_per_iteration=500,
     epsilon_greedy=0.1,
     replay_buffer_capacity=200000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=5000,
+    train_steps_per_iteration=50000,
     batch_size=128,
     learning_rate=1e-3,
     gamma=0.99,
