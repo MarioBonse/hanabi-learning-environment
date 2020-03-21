@@ -279,7 +279,8 @@ def partial_training(dataset, tf_agent_1, tf_agent_2, n_steps=500):
         losses_1.append(tf_agent_1.train(experience=experience).loss)
         losses_2.append(tf_agent_2.train(experience=experience).loss)
     
-    print('siamo dopo il for', losses_1)
+    print('siamo dopo il for', len(losses_1))
+    tf.print(losses_1[0])
     print(type(losses_1))
     print('ho printato')
     losses_1 = tf.stack(losses_1)
