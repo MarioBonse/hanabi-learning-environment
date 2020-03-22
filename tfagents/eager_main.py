@@ -196,7 +196,7 @@ def train_eval(
         max_to_keep=1,
         replay_buffer=replay_buffer)
 
-    print('\n\n\nTrying to restore Checpoints for the agents and Replay Buffer')
+    print('\n\n\nTrying to restore Checkpoints for the agents and Replay Buffer')
     train_checkpointer.initialize_or_restore()
     rb_checkpointer.initialize_or_restore()
     print('\n\n')
