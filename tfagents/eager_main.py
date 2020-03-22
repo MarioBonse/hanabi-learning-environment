@@ -185,7 +185,7 @@ def train_eval(
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
         agent_1=tf_agent_1,
-        agent_2=tf_agent_2
+        agent_2=tf_agent_2,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
