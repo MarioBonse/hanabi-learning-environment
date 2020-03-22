@@ -45,23 +45,15 @@ from hanabi_learning_environment import rl_env
 import gin
 from six.moves import range
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
-
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
-from tf_agents.environments import suite_gym
-
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import py_metrics
 from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
-from tf_agents.policies import py_tf_policy
-from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
-from tensorflow.python.eager import context
-
-from tqdm import tqdm
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
@@ -175,7 +167,7 @@ def train_eval(
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
-    
+
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent_1.collect_data_spec,
@@ -215,8 +207,6 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
-    collect_time = 0
-    train_time = 0
     for global_step_val in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
@@ -246,8 +236,8 @@ def train_eval(
         c = 0
         start_time  = time.time()
         for data in dataset:
-            if c % 500 == 0:
-                print(c)
+            if c % train_steps_per_iteration/10 == 0:
+                print("{}% completed with {} steps done".format(int(train_steps_per_iteration/c), c))
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
