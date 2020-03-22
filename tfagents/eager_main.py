@@ -91,9 +91,9 @@ def train_eval(
     # Params for eval
     num_eval_episodes=10,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=10,
-    policy_checkpoint_interval=5,
-    rb_checkpoint_interval=20,
+    train_checkpoint_interval=3,
+    policy_checkpoint_interval=3,
+    rb_checkpoint_interval=3,
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
@@ -211,16 +211,16 @@ def train_eval(
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
-
+        print('EPOCH {}'.format(global_step_val + 1))
         # episode driver
-        print('\n\n\nStarting to run the Driver\n\n')
+        print('\nStarting to run the Driver')
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
             [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
             num_episodes=collect_episodes_per_iteration).run()
-        print('\nFinished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
+        print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
                                                                                            collect_episodes_per_iteration))
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
