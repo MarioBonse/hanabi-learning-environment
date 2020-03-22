@@ -237,7 +237,7 @@ def train_eval(
         start_time  = time.time()
         for data in dataset:
             if c % (train_steps_per_iteration/10) == 0 and c != 0:
-                print("{}% completed with {} steps done".format(int(train_steps_per_iteration/c), c))
+                print("{}% completed with {} steps done".format(int(c/train_steps_per_iteration*100), c))
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
