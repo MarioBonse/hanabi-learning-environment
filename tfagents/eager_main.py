@@ -59,6 +59,7 @@ from tf_agents.policies import py_tf_policy
 from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
+from tensorflow.python.eager import context
 
 from tqdm import tqdm
 
@@ -175,6 +176,11 @@ def train_eval(
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
 
+    print('\n\n\nEcco i print riguardo eagerly')
+    print(tf.executing_eagerly())
+    print(context.executing_eagerly())
+    print('Finito\n\n\n')
+    
     agent_1_train_function = common.function(tf_agent_1.train)
     agent_2_train_function = common.function(tf_agent_2.train)
     
