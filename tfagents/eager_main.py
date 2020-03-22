@@ -45,22 +45,15 @@ from hanabi_learning_environment import rl_env
 import gin
 from six.moves import range
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
-
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
-from tf_agents.environments import suite_gym
-
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import py_metrics
 from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
-from tf_agents.policies import py_tf_policy
-from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
-
-from tqdm import tqdm
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
@@ -80,37 +73,32 @@ def observation_and_action_constraint_splitter(obs):
 def train_eval(
     root_dir,
     num_iterations=100000,
-    fc_layer_params=(100,),
+    fc_layer_params=(128, 64),
     # Params for collect
-    initial_collect_steps=1000,
-    collect_steps_per_iteration=1,
+    collect_episodes_per_iteration=500,
     epsilon_greedy=0.1,
-    replay_buffer_capacity=100000,
+    replay_buffer_capacity=200000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=1000,
-    batch_size=64,
+    train_steps_per_iteration=50000,
+    batch_size=128,
     learning_rate=1e-3,
     gamma=0.99,
     reward_scale_factor=1.0,
     gradient_clipping=None,
     # Params for eval
     num_eval_episodes=10,
-    eval_interval=1000,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=10000,
-    policy_checkpoint_interval=5000,
-    rb_checkpoint_interval=20000,
-    log_interval=1000,
-    summary_interval=1000,
+    train_checkpoint_interval=3,
+    policy_checkpoint_interval=3,
+    rb_checkpoint_interval=3,
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
     summarize_grads_and_vars=False,
-    eval_metrics_callback=None,
-        num_players=2):
+    num_players=2):
     """A simple train and eval for DQN."""
     root_dir = os.path.expanduser(root_dir)
     train_dir = os.path.join(root_dir, 'train')
@@ -139,14 +127,13 @@ def train_eval(
 
 
     # create an agent and a network 
-    tf_agent = agent_class(
+    tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
         tf_env.action_spec(),
-        q_network= q_network.QNetwork(
-                                        tf_env.time_step_spec().observation['observations'],
-                                        tf_env.action_spec(),
-                                        fc_layer_params=fc_layer_params
-                                        ),
+        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
+                                      tf_env.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
@@ -164,11 +151,10 @@ def train_eval(
     tf_agent_2 = agent_class(
         tf_env.time_step_spec(),
         tf_env.action_spec(),
-        q_network= q_network.QNetwork(
-                                        tf_env.time_step_spec().observation['observations'],
-                                        tf_env.action_spec(),
-                                        fc_layer_params=fc_layer_params
-                                        ),
+        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
+                                      tf_env.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
@@ -184,11 +170,9 @@ def train_eval(
 
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-        tf_agent.collect_data_spec,
+        tf_agent_1.collect_data_spec,
         batch_size=tf_env.batch_size,
         max_length=replay_buffer_capacity)
-
-    eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent.policy)
 
     # metrics
     train_metrics = [
@@ -200,83 +184,72 @@ def train_eval(
 
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
-        agent=tf_agent,
+        agent_1=tf_agent_1,
+        agent_2=tf_agent_2,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
-
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
-        policy=tf_agent.policy,)
-
+        policy_1=tf_agent_1.policy,
+        policy_2=tf_agent_2.policy)
     rb_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'replay_buffer'),
         max_to_keep=1,
         replay_buffer=replay_buffer)
 
+    print('\n\n\nTrying to restore Checkpoints for the agents and Replay Buffer')
+    train_checkpointer.initialize_or_restore()
+    rb_checkpointer.initialize_or_restore()
+    print('\n\n')
+    
+    # Compiled version of training functions (much faster)
+    agent_1_train_function = common.function(tf_agent_1.train)
+    agent_2_train_function = common.function(tf_agent_2.train)
+    
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
-    collect_time = 0
-    train_time = 0
     for global_step_val in range(num_iterations):
         # the two policies we use to collect data
-        collect_policy = tf_agent.collect_policy
+        collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
-
-        # episode driver 
+        print('EPOCH {}'.format(global_step_val + 1))
+        # episode driver
+        print('\nStarting to run the Driver')
         start_time = time.time()
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
-            [collect_policy, collect_policy_2],
+            [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
-            num_episodes=collect_steps_per_iteration).run()
-        collect_time += time.time() - start_time
-        start_time = time.time()
-        print('\nFinished running the Driver\n')
+            num_episodes=collect_episodes_per_iteration).run()
+        print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
+                                                                                           collect_episodes_per_iteration))
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
-            num_steps=2).prefetch(3)
+            num_steps=2).prefetch(5)
 
-        print('\nStarting partial training Agent 1 from Replay Buffer\nCounting Iterations:')
+        print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')
 
-        losses = []
+        losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
+        losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
         c = 0
         start_time  = time.time()
         for data in dataset:
-            if c % 100 == 0:
-                print(c)
-            c += 1
+            if c % (train_steps_per_iteration/10) == 0 and c != 0:
+                print("{}% completed with {} steps done".format(int(c/train_steps_per_iteration*100), c))
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
-            losses.append(tf_agent.train(experience=experience).loss)
-        losses = tf.stack(losses)
-        print("End training Agent 1: it took {}".format(time.time() - start_time))
-        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
-        start_time  = time.time()
-
-        dataset = replay_buffer.as_dataset(
-            num_parallel_calls=3,
-            sample_batch_size=batch_size,
-            num_steps=2).prefetch(3)
-
-        print('\nStarting partial training Agent 2 from Replay Buffer\nCounting Iterations:')
-        losses = []
-        c = 0
-        losses = []
-        start_time  = time.time()
-        for data in dataset:
-            if c % 100 == 0:
-                print(c)
+            losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
+            losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
             c += 1
-            if c == train_steps_per_iteration:
-                break
-            experience, _ = data
-            losses.append(tf_agent_2.train(experience=experience).loss)
-        losses = tf.stack(losses)
-        print("End training Agent 2: it took {}".format(time.time() - start_time))
-        print('mean loss is: {}'.format(tf.math.reduce_mean(losses)))
+        losses_1 = losses_1.stack()
+        losses_2 = losses_2.stack()
+        print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
+        print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
+        print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
+        
         
         if global_step_val % train_checkpoint_interval == 0:
             train_checkpointer.save(global_step = global_step_val)
