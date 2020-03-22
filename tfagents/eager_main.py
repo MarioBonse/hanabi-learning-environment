@@ -175,22 +175,12 @@ def train_eval(
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars)
-
-    print('\n\n\nEcco i print riguardo eagerly')
-    print(tf.executing_eagerly())
-    print(context.executing_eagerly())
-    print('Finito\n\n\n')
-    
-    agent_1_train_function = common.function(tf_agent_1.train)
-    agent_2_train_function = common.function(tf_agent_2.train)
     
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent_1.collect_data_spec,
         batch_size=tf_env.batch_size,
         max_length=replay_buffer_capacity)
-
-    eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
 
     # metrics
     train_metrics = [
@@ -202,18 +192,27 @@ def train_eval(
 
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
-        agent=tf_agent_1,
+        agent_1=tf_agent_1,
+        agent_2=tf_agent_2
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
-
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
-        policy=tf_agent_1.policy,)
-
+        policy_1=tf_agent_1.policy,
+        policy_2=tf_agent_2.policy)
     rb_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'replay_buffer'),
         max_to_keep=1,
         replay_buffer=replay_buffer)
 
+    print('\n\n\nTrying to restore Checpoints for the agents and Replay Buffer')
+    train_checkpointer.initialize_or_restore()
+    rb_checkpointer.initialize_or_restore()
+    print('\n\n')
+    
+    # Compiled version of training functions (much faster)
+    agent_1_train_function = common.function(tf_agent_1.train)
+    agent_2_train_function = common.function(tf_agent_2.train)
+    
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
     collect_time = 0
