@@ -54,6 +54,7 @@ from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
+import click
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
@@ -67,6 +68,14 @@ FLAGS = flags.FLAGS
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
+
+
+def run_verbose_mode(agent_1, agent_2):
+    env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=2)
+    tf_env = tf_py_environment.TFPyEnvironment(env)
+    
+    state = tf.env.reset()
+
 
 
 @gin.configurable
@@ -119,8 +128,7 @@ def train_eval(
 
 
     # create the enviroment
-    env = rl_env.make('Hanabi-Full-CardKnowledge',
-                            num_players=num_players)                        
+    env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = rl_env.make(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
@@ -266,16 +274,21 @@ def train_eval(
 
 
 
-
-
-def main(_):
+@click.command()
+@click.option('--gradient_clipping', default=None,
+              help='Numerical value to clip the norm of the gradients')
+@click.option('--learning_rate', default=10**(-3),
+              help="Learning Rate for the agent's training process")
+def main(_, gradient_clipping, learning_rate):
     logging.set_verbosity(logging.INFO)
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
     train_eval(
         FLAGS.root_dir,
         agent_class=agent_class,
-        num_iterations=FLAGS.num_iterations)
+        num_iterations=FLAGS.num_iterations,
+        gradient_clipping=gradient_clipping,
+        learning_rate=learning_rate)
 
 
 if __name__ == '__main__':
