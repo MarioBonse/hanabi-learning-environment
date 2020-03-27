@@ -137,8 +137,8 @@ def train_eval(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
 
     
-    train_step_1 = tf.Variable(1, trainable=False, name='global_step_1')
-    train_step_2 = tf.Variable(1, trainable=False, name='global_step_2')
+    train_step_1 = tf.Variable(1, trainable=False, name='global_step_1', dtype=tf.int64)
+    train_step_2 = tf.Variable(1, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
     
     #TODO Using global_step? Consider that the agents can take as input the step as a train_step_counter
