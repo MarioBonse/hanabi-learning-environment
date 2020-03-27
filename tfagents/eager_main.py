@@ -60,6 +60,8 @@ flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_integer('num_iterations', 100000,
                      'Total number train/eval iterations to perform.')
+flags.DEFINE_integer('checkpoint_interval', 3,
+                     'Number of Epochs to run before checkpointing')
 flags.DEFINE_float('gradient_clipping', None,
                      'Numerical value to clip the norm of the gradients')
 flags.DEFINE_float('learning_rate', 0.001,
@@ -298,7 +300,10 @@ def main(_):
         agent_class=agent_class,
         num_iterations=FLAGS.num_iterations,
         gradient_clipping=FLAGS.gradient_clipping,
-        learning_rate=FLAGS.learning_rate)
+        learning_rate=FLAGS.learning_rate,
+        train_checkpoint_interval=FLAGS.checkpoint_interval,
+        policy_checkpoint_interval=FLAGS.checkpoint_interval,
+        rb_checkpoint_interval=FLAGS.checkpoint_interval)
 
 
 if __name__ == '__main__':
