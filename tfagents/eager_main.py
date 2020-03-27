@@ -125,7 +125,11 @@ def train_eval(
     eval_py_env = rl_env.make(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
 
-
+    #TODO Using global_step? Consider that the agents can take as input the step as a train_step_counter
+    # and they use this step as for logging to summary file writers during training... If you don't feed the 
+    # agents the step then they will generate it with tf.compat.v1.get_or_create_global_step(). But it would
+    # be nice to give it to them and then keep track of it in checkpoints.... Do you even need to give it to them
+    # if you keep track of it using checkpoints? I think not because their get_or_create_global_step will get it right?
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),

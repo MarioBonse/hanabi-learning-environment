@@ -340,7 +340,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 		FEDE COMMENT
 		Turni dei giocatori come vengono gestiti? ne tiene traccia l'env? come gestire che non sia sempre lo stesso a cominciare? 
 		Nota che per ora quando l'environment crea un oggetto HanabiGame inizializza il first player a caso.
-		Se l'env tiene traccia dei turnidobbiamo passare qualche info al driver oppure non serve? (a naso mi sembra che non serva)
+		Se l'env tiene traccia dei turni dobbiamo passare qualche info al driver oppure non serve? (a naso mi sembra che non serva)
 		"""
 
 		obs = self._make_observation_all_players()
