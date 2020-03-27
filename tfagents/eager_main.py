@@ -54,13 +54,16 @@ from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
-import click
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_integer('num_iterations', 100000,
                      'Total number train/eval iterations to perform.')
+flags.DEFINE_float('gradient_clipping', None,
+                     'Numerical value to clip the norm of the gradients')
+flags.DEFINE_float('learning_rate', 0.001,
+                     "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
 FLAGS = flags.FLAGS
@@ -274,12 +277,7 @@ def train_eval(
 
 
 
-@click.command()
-@click.option('--gradient_clipping', default=None, type=float,
-              help='Numerical value to clip the norm of the gradients')
-@click.option('--learning_rate', default=10**(-3), type=float,
-              help="Learning Rate for the agent's training process")
-def main(_, gradient_clipping, learning_rate):
+def main(_):
     logging.set_verbosity(logging.INFO)
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
@@ -287,8 +285,8 @@ def main(_, gradient_clipping, learning_rate):
         FLAGS.root_dir,
         agent_class=agent_class,
         num_iterations=FLAGS.num_iterations,
-        gradient_clipping=gradient_clipping,
-        learning_rate=learning_rate)
+        gradient_clipping=FLAGS.gradient_clipping,
+        learning_rate=FLAGS.learning_rate)
 
 
 if __name__ == '__main__':
