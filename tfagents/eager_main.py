@@ -275,9 +275,9 @@ def train_eval(
 
 
 @click.command()
-@click.option('--gradient_clipping', default=None,
+@click.option('--gradient_clipping', default=None, type=float,
               help='Numerical value to clip the norm of the gradients')
-@click.option('--learning_rate', default=10**(-3),
+@click.option('--learning_rate', default=10**(-3), type=float,
               help="Learning Rate for the agent's training process")
 def main(_, gradient_clipping, learning_rate):
     logging.set_verbosity(logging.INFO)
