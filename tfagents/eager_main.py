@@ -136,6 +136,11 @@ def train_eval(
     eval_py_env = rl_env.make(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
 
+    
+    train_step_1 = tf.Variable(1, trainable=False, name='global_step_1')
+    train_step_2 = tf.Variable(1, trainable=False, name='global_step_2')
+    epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
+    
     #TODO Using global_step? Consider that the agents can take as input the step as a train_step_counter
     # and they use this step as for logging to summary file writers during training... If you don't feed the 
     # agents the step then they will generate it with tf.compat.v1.get_or_create_global_step(). But it would
@@ -160,7 +165,8 @@ def train_eval(
         reward_scale_factor=reward_scale_factor,
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars)
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_1)
 
     # Second agent. we can have as many as we want
     tf_agent_2 = agent_class(
@@ -181,7 +187,8 @@ def train_eval(
         reward_scale_factor=reward_scale_factor,
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars)
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_2)
 
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
@@ -201,6 +208,9 @@ def train_eval(
         ckpt_dir=train_dir,
         agent_1=tf_agent_1,
         agent_2=tf_agent_2,
+        train_step_1=train_step_1,
+        train_step_2=train_step_2,
+        epoch_counter=epoch_counter,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
@@ -222,11 +232,11 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
-    for global_step_val in range(num_iterations):
+    for _ in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
-        print('EPOCH {}'.format(global_step_val + 1))
+        print('EPOCH {}'.format(epoch_counter.numpy()))
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
@@ -266,14 +276,16 @@ def train_eval(
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
         
-        if global_step_val % train_checkpoint_interval == 0:
-            train_checkpointer.save(global_step = global_step_val)
+        if epoch_counter.numpy() % train_checkpoint_interval == 0:
+            train_checkpointer.save(global_step=epoch_counter.numpy())
 
-        if global_step_val % policy_checkpoint_interval == 0:
-            policy_checkpointer.save(global_step = global_step_val)
+        if epoch_counter.numpy() % policy_checkpoint_interval == 0:
+            policy_checkpointer.save(global_step=epoch_counter.numpy())
 
-        if global_step_val % rb_checkpoint_interval == 0:
-            rb_checkpointer.save(global_step = global_step_val)
+        if epoch_counter.numpy() % rb_checkpoint_interval == 0:
+            rb_checkpointer.save(global_step=epoch_counter.numpy())
+        
+        epoch_counter.assign_add(1)
 
 
 
