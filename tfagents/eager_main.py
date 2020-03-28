@@ -60,6 +60,12 @@ flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_integer('num_iterations', 100000,
                      'Total number train/eval iterations to perform.')
+flags.DEFINE_integer('checkpoint_interval', 3,
+                     'Number of Epochs to run before checkpointing')
+flags.DEFINE_float('gradient_clipping', None,
+                     'Numerical value to clip the norm of the gradients')
+flags.DEFINE_float('learning_rate', 0.001,
+                     "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
 FLAGS = flags.FLAGS
@@ -67,6 +73,14 @@ FLAGS = flags.FLAGS
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
+
+
+def run_verbose_mode(agent_1, agent_2):
+    env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=2)
+    tf_env = tf_py_environment.TFPyEnvironment(env)
+    
+    state = tf.env.reset()
+
 
 
 @gin.configurable
@@ -119,13 +133,21 @@ def train_eval(
 
 
     # create the enviroment
-    env = rl_env.make('Hanabi-Full-CardKnowledge',
-                            num_players=num_players)                        
+    env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = rl_env.make(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
 
-
+    
+    train_step_1 = tf.Variable(1, trainable=False, name='global_step_1', dtype=tf.int64)
+    train_step_2 = tf.Variable(1, trainable=False, name='global_step_2', dtype=tf.int64)
+    epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
+    
+    #TODO Using global_step? Consider that the agents can take as input the step as a train_step_counter
+    # and they use this step as for logging to summary file writers during training... If you don't feed the 
+    # agents the step then they will generate it with tf.compat.v1.get_or_create_global_step(). But it would
+    # be nice to give it to them and then keep track of it in checkpoints.... Do you even need to give it to them
+    # if you keep track of it using checkpoints? I think not because their get_or_create_global_step will get it right?
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
@@ -145,7 +167,8 @@ def train_eval(
         reward_scale_factor=reward_scale_factor,
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars)
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_1)
 
     # Second agent. we can have as many as we want
     tf_agent_2 = agent_class(
@@ -166,7 +189,8 @@ def train_eval(
         reward_scale_factor=reward_scale_factor,
         gradient_clipping=gradient_clipping,
         debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars)
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_2)
 
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
@@ -186,6 +210,9 @@ def train_eval(
         ckpt_dir=train_dir,
         agent_1=tf_agent_1,
         agent_2=tf_agent_2,
+        train_step_1=train_step_1,
+        train_step_2=train_step_2,
+        epoch_counter=epoch_counter,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
@@ -207,11 +234,11 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
-    for global_step_val in range(num_iterations):
+    for _ in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
-        print('EPOCH {}'.format(global_step_val + 1))
+        print('EPOCH {}'.format(epoch_counter.numpy()))
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
@@ -250,16 +277,16 @@ def train_eval(
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
+        epoch_counter.assign_add(1)
         
-        if global_step_val % train_checkpoint_interval == 0:
-            train_checkpointer.save(global_step = global_step_val)
+        if (epoch_counter.numpy() - 1) % train_checkpoint_interval == 0:
+            train_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
-        if global_step_val % policy_checkpoint_interval == 0:
-            policy_checkpointer.save(global_step = global_step_val)
+        if (epoch_counter.numpy() - 1) % policy_checkpoint_interval == 0:
+            policy_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
-        if global_step_val % rb_checkpoint_interval == 0:
-            rb_checkpointer.save(global_step = global_step_val)
-
+        if (epoch_counter.numpy() - 1) % rb_checkpoint_interval == 0:
+            rb_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
 
 
@@ -271,7 +298,12 @@ def main(_):
     train_eval(
         FLAGS.root_dir,
         agent_class=agent_class,
-        num_iterations=FLAGS.num_iterations)
+        num_iterations=FLAGS.num_iterations,
+        gradient_clipping=FLAGS.gradient_clipping,
+        learning_rate=FLAGS.learning_rate,
+        train_checkpoint_interval=FLAGS.checkpoint_interval,
+        policy_checkpoint_interval=FLAGS.checkpoint_interval,
+        rb_checkpoint_interval=FLAGS.checkpoint_interval)
 
 
 if __name__ == '__main__':
