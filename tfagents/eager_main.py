@@ -277,17 +277,17 @@ def train_eval(
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
-        
-        if epoch_counter.numpy() % train_checkpoint_interval == 0:
-            train_checkpointer.save(global_step=epoch_counter.numpy())
-
-        if epoch_counter.numpy() % policy_checkpoint_interval == 0:
-            policy_checkpointer.save(global_step=epoch_counter.numpy())
-
-        if epoch_counter.numpy() % rb_checkpoint_interval == 0:
-            rb_checkpointer.save(global_step=epoch_counter.numpy())
-        
         epoch_counter.assign_add(1)
+        
+        if (epoch_counter.numpy() - 1) % train_checkpoint_interval == 0:
+            train_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
+
+        if (epoch_counter.numpy() - 1) % policy_checkpoint_interval == 0:
+            policy_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
+
+        if (epoch_counter.numpy() - 1) % rb_checkpoint_interval == 0:
+            rb_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
+
 
 
 
