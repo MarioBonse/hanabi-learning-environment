@@ -143,11 +143,6 @@ def train_eval(
     train_step_2 = tf.Variable(1, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
     
-    #TODO Using global_step? Consider that the agents can take as input the step as a train_step_counter
-    # and they use this step as for logging to summary file writers during training... If you don't feed the 
-    # agents the step then they will generate it with tf.compat.v1.get_or_create_global_step(). But it would
-    # be nice to give it to them and then keep track of it in checkpoints.... Do you even need to give it to them
-    # if you keep track of it using checkpoints? I think not because their get_or_create_global_step will get it right?
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
@@ -223,6 +218,9 @@ def train_eval(
         max_to_keep=1,
         replay_buffer=replay_buffer)
 
+    
+    #FIXME I believe that this is useless because Checkpointer object will already restore latest checkpoint
+    # inside it's __init__ method. Should be tested though.
     print('\n\n\nTrying to restore Checkpoints for the agents and Replay Buffer')
     train_checkpointer.initialize_or_restore()
     rb_checkpointer.initialize_or_restore()
