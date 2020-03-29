@@ -299,9 +299,11 @@ def train_eval(
         
         eval_policy_1 = tf_agent_1.policy
         eval_policy_2 = tf_agent_2.policy
-
+        
+        epoch_counter.assign_add(1)
+        
         for train_metric in train_metrics:
-            train_metric.tf_summaries(train_step=epoch_counter.assign_add(1), step_metrics=train_metrics[:2])
+            train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
 
         if (epoch_counter.numpy() - 1) % train_checkpoint_interval == 0:
             train_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
