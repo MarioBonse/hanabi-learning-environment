@@ -294,9 +294,7 @@ def train_eval(
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
-        
-        epoch_counter.assign_add(1)
-        
+                
         eval_policy_1 = tf_agent_1.policy
         eval_policy_2 = tf_agent_2.policy
         
@@ -305,13 +303,13 @@ def train_eval(
         for train_metric in train_metrics:
             train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
 
-        if (epoch_counter.numpy() - 1) % train_checkpoint_interval == 0:
+        if epoch_counter.numpy() % train_checkpoint_interval == 1:
             train_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
-        if (epoch_counter.numpy() - 1) % policy_checkpoint_interval == 0:
+        if epoch_counter.numpy() % policy_checkpoint_interval == 1:
             policy_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
-        if (epoch_counter.numpy() - 1) % rb_checkpoint_interval == 0:
+        if epoch_counter.numpy() % rb_checkpoint_interval == 1:
             rb_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
         ''' TODO
