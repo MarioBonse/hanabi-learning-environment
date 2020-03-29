@@ -144,7 +144,7 @@ def train_eval(
     
     train_step_1 = tf.Variable(0, trainable=False, name='global_step_1', dtype=tf.int64)
     train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
-    epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
+    epoch_counter = tf.Variable(0, trainable=False, name='Epoch', dtype=tf.int64)
     
     # create an agent and a network 
     tf_agent_1 = agent_class(
