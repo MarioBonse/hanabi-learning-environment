@@ -54,6 +54,7 @@ from tf_agents.metrics import tf_metrics
 from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
+from tf_agents.policies import py_tf_policy
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
@@ -98,11 +99,12 @@ def train_eval(
     # Params for train
     train_steps_per_iteration=50000,
     batch_size=128,
-    learning_rate=1e-3,
+    learning_rate=1e-5,
     gamma=0.99,
     reward_scale_factor=1.0,
     gradient_clipping=None,
     # Params for eval
+    eval_interval=1000,
     num_eval_episodes=10,
     # Params for checkpoints, summaries, and logging
     train_checkpoint_interval=3,
@@ -118,12 +120,13 @@ def train_eval(
     train_dir = os.path.join(root_dir, 'train')
     eval_dir = os.path.join(root_dir, 'eval')
 
-    train_summary_writer = tf.compat.v2.summary.create_file_writer(
+    train_summary_writer = tf.summary.create_file_writer(
         train_dir, flush_millis=summaries_flush_secs * 1000)
 
     train_summary_writer.set_as_default()
+    
 
-    eval_summary_writer = tf.compat.v2.summary.create_file_writer(
+    eval_summary_writer = tf.summary.create_file_writer(
         eval_dir, flush_millis=summaries_flush_secs * 1000)
 
     eval_metrics = [
@@ -139,8 +142,8 @@ def train_eval(
         'Hanabi-Full-CardKnowledge', num_players=num_players)
 
     
-    train_step_1 = tf.Variable(1, trainable=False, name='global_step_1', dtype=tf.int64)
-    train_step_2 = tf.Variable(1, trainable=False, name='global_step_2', dtype=tf.int64)
+    train_step_1 = tf.Variable(0, trainable=False, name='global_step_1', dtype=tf.int64)
+    train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch')
     
     # create an agent and a network 
@@ -193,6 +196,12 @@ def train_eval(
         batch_size=tf_env.batch_size,
         max_length=replay_buffer_capacity)
 
+    
+    #FIXME we haven't really looked at how train_metrics are managed in the driver when it's running
+    # in particular it is unclear whether any issues come up because of the fact that now the driver
+    # is running two different policies (agents). In other words, we only modified the DynamicEpicodeDriver
+    # with what was stricly necessary to make it run with two different agents. We never checked what the 
+    # implications of this would be for logging, summaries and metrics.
     # metrics
     train_metrics = [
         tf_metrics.NumberOfEpisodes(),
@@ -201,6 +210,7 @@ def train_eval(
         tf_metrics.AverageEpisodeLengthMetric(),
     ]
 
+    # checkpointer:
     train_checkpointer = common.Checkpointer(
         ckpt_dir=train_dir,
         agent_1=tf_agent_1,
@@ -209,10 +219,12 @@ def train_eval(
         train_step_2=train_step_2,
         epoch_counter=epoch_counter,
         metrics=metric_utils.MetricsGroup(train_metrics, 'train_metrics'))
+
     policy_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'policy'),
         policy_1=tf_agent_1.policy,
         policy_2=tf_agent_2.policy)
+
     rb_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'replay_buffer'),
         max_to_keep=1,
@@ -232,7 +244,7 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
-    for _ in range(num_iterations):
+    for step in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
@@ -254,7 +266,7 @@ def train_eval(
             sample_batch_size=batch_size,
             num_steps=2).prefetch(5)
 
-        print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')
+        print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
         losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
         losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
@@ -262,13 +274,21 @@ def train_eval(
         start_time  = time.time()
         for data in dataset:
             if c % (train_steps_per_iteration/10) == 0 and c != 0:
+                tf.summary.scalar("loss_agent_1", tf.math.reduce_mean(losses_1.stack()), step=train_step_1)
+                tf.summary.scalar("loss_agent_2",  tf.math.reduce_mean(losses_1.stack()), step=train_step_2)
                 print("{}% completed with {} steps done".format(int(c/train_steps_per_iteration*100), c))
             if c == train_steps_per_iteration:
                 break
             experience, _ = data
+            #FIXME _train and _loss functions of the two agents call the tf.summary to log the value
+            # of various things. It seems though that they are writing on the same summary variables
+            # because they're not build for the possibility of two agents in training. We need to change 
+            # the agent class so that it can accept some agent_id string that it then uses to tf.name_scope
+            # all the summaries. See line 482 in dwn_agent.py to understand what I mean by tf.name_scope  
             losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
-            losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
+            losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)                
             c += 1
+
         losses_1 = losses_1.stack()
         losses_2 = losses_2.stack()
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
@@ -277,6 +297,12 @@ def train_eval(
         
         epoch_counter.assign_add(1)
         
+        eval_policy_1 = tf_agent_1.policy
+        eval_policy_2 = tf_agent_2.policy
+
+        for train_metric in train_metrics:
+            train_metric.tf_summaries(train_step=epoch_counter.assign_add(1), step_metrics=train_metrics[:2])
+
         if (epoch_counter.numpy() - 1) % train_checkpoint_interval == 0:
             train_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
 
@@ -285,6 +311,23 @@ def train_eval(
 
         if (epoch_counter.numpy() - 1) % rb_checkpoint_interval == 0:
             rb_checkpointer.save(global_step=(epoch_counter.numpy() - 1))
+
+        ''' TODO
+        #FIXME compute summaries runs a PyDriver instead of DynamicEpisodeDriver, we need to
+        # adapt it so that it can also accept two policies in input and run them one after the
+        # other (implementing non-self-play).
+        if (epoch_counter.numpy() - 1) % eval_interval == 0:
+            eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
+            metric_utils.compute_summaries(
+            eval_metrics,
+            eval_py_env,
+            eval_py_policy,
+            num_episodes=num_eval_episodes,
+            global_step=train_step_1,
+            log = True
+            )
+        '''
+
 
 
 
