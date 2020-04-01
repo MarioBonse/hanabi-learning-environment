@@ -59,16 +59,20 @@ from tf_agents.policies import py_tf_policy
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_integer('num_iterations', 100000,
+flags.DEFINE_integer('num_iterations', 1000,
                      'Total number train/eval iterations to perform.')
 flags.DEFINE_integer('checkpoint_interval', 3,
                      'Number of Epochs to run before checkpointing')
+flags.DEFINE_integer('rb_size', 50000,
+                     'Number of transitions to store in the Replay Buffer')
 flags.DEFINE_float('gradient_clipping', None,
                      'Numerical value to clip the norm of the gradients')
-flags.DEFINE_float('learning_rate', 0.001,
+flags.DEFINE_float('learning_rate', 1e-5,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
+flags.DEFINE_list('network', [256, 128],
+                  'List of layers and corresponding nodes per layer')
 FLAGS = flags.FLAGS
 
 
@@ -87,12 +91,12 @@ def run_verbose_mode(agent_1, agent_2):
 @gin.configurable
 def train_eval(
     root_dir,
-    num_iterations=100000,
-    fc_layer_params=(128, 64),
+    num_iterations=1000,
+    fc_layer_params=(256, 128),
     # Params for collect
     collect_episodes_per_iteration=500,
     epsilon_greedy=0.1,
-    replay_buffer_capacity=200000,
+    replay_buffer_capacity=50000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
@@ -344,7 +348,9 @@ def main(_):
         learning_rate=FLAGS.learning_rate,
         train_checkpoint_interval=FLAGS.checkpoint_interval,
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
-        rb_checkpoint_interval=FLAGS.checkpoint_interval)
+        rb_checkpoint_interval=FLAGS.checkpoint_interval,
+        replay_buffer_capacity=FLAGS.rb_size,
+        fc_layer_params=tuple(FLAGS.network))
 
 
 if __name__ == '__main__':
