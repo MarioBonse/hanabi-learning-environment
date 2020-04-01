@@ -340,6 +340,9 @@ def main(_):
     logging.set_verbosity(logging.INFO)
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
+    print(FLAGS.network)
+    fc_layer_params = tuple([int(number) for number in FLAGS.network])
+    print(fc_layer_params)
     train_eval(
         FLAGS.root_dir,
         agent_class=agent_class,
@@ -350,7 +353,7 @@ def main(_):
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
         replay_buffer_capacity=FLAGS.rb_size,
-        fc_layer_params=tuple(FLAGS.network))
+        fc_layer_params=fc_layer_params)
 
 
 if __name__ == '__main__':
