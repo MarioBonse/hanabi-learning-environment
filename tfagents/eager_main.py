@@ -308,13 +308,13 @@ def train_eval(
             train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
 
         if epoch_counter.numpy() % train_checkpoint_interval == 1:
-            train_checkpointer.save(global_step=epoch_counter)
+            train_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
         if epoch_counter.numpy() % policy_checkpoint_interval == 1:
-            policy_checkpointer.save(global_step=epoch_counter)
+            policy_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
         if epoch_counter.numpy() % rb_checkpoint_interval == 1:
-            rb_checkpointer.save(global_step=epoch_counter)
+            rb_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
         ''' TODO
         #FIXME compute summaries runs a PyDriver instead of DynamicEpisodeDriver, we need to
