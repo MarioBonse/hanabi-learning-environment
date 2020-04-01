@@ -67,7 +67,7 @@ flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
 flags.DEFINE_float('gradient_clipping', None,
                      'Numerical value to clip the norm of the gradients')
-flags.DEFINE_float('learning_rate', 1e-5,
+flags.DEFINE_float('learning_rate', 1e-6,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
@@ -103,7 +103,7 @@ def train_eval(
     # Params for train
     train_steps_per_iteration=50000,
     batch_size=128,
-    learning_rate=1e-5,
+    learning_rate=1e-6,
     gamma=0.99,
     reward_scale_factor=1.0,
     gradient_clipping=None,
