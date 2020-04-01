@@ -94,15 +94,15 @@ def train_eval(
     num_iterations=1000,
     fc_layer_params=(256, 128),
     # Params for collect
-    collect_episodes_per_iteration=500,
+    collect_episodes_per_iteration=300,
     epsilon_greedy=0.1,
     replay_buffer_capacity=50000,
     # Params for target update
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=50000,
-    batch_size=128,
+    train_steps_per_iteration=25000,
+    batch_size=64,
     learning_rate=1e-6,
     gamma=0.99,
     reward_scale_factor=1.0,
