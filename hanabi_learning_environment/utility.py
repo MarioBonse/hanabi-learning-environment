@@ -224,4 +224,4 @@ def parse_observations(observations, num_actions, obs_stacker):
 
 
 def decaying_epsilon(initial_epsilon, train_step, decay_time):
-    return initial_epsilon*((1/2)**(tf.math.floordiv(train_step, decay_time)))
+    return initial_epsilon*(tf.math.pow(0.5, (tf.math.floordiv(train_step, decay_time))))
