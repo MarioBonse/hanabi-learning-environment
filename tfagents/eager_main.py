@@ -258,7 +258,12 @@ def train_eval(
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
+        
+        assert decaying_epsilon_1().numpy() == decaying_epsilon_2().numpy()
+        
         print('EPOCH {}'.format(epoch_counter.numpy()))
+        print('The epsilon for the epsilon-greedy policy at this iteration is:', decaying_epsilon_1().numpy())
+        
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
