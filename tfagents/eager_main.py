@@ -42,6 +42,7 @@ from absl import flags
 from absl import logging
 
 from hanabi_learning_environment import rl_env
+from hanabi_learning_environment import utility
 import gin
 from six.moves import range
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
@@ -55,6 +56,7 @@ from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
 from tf_agents.policies import py_tf_policy
+from functools import partial
 
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
@@ -96,6 +98,7 @@ def train_eval(
     # Params for collect
     collect_episodes_per_iteration=300,
     epsilon_greedy=0.1,
+    decay_steps=100000,
     replay_buffer_capacity=50000,
     # Params for target update
     target_update_tau=0.05,
@@ -150,6 +153,9 @@ def train_eval(
     train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch', dtype=tf.int64)
     
+    decaying_epsilon_1 = partial(utility.decaying_epsilon, epsilon_greedy, train_step_1, decay_steps)
+    decaying_epsilon_2 = partial(utility.decaying_epsilon, epsilon_greedy, train_step_2, decay_steps)
+    
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
@@ -161,7 +167,7 @@ def train_eval(
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=epsilon_greedy,
+        epsilon_greedy=decaying_epsilon_1,
         target_update_tau=target_update_tau,
         target_update_period=target_update_period,
         td_errors_loss_fn=common.element_wise_squared_loss,
@@ -183,7 +189,7 @@ def train_eval(
         optimizer=tf.compat.v1.train.AdamOptimizer(
             learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=epsilon_greedy,
+        epsilon_greedy=decaying_epsilon_2,
         target_update_tau=target_update_tau,
         target_update_period=target_update_period,
         td_errors_loss_fn=common.element_wise_squared_loss,

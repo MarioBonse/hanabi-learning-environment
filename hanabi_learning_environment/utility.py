@@ -34,107 +34,108 @@ import tensorflow as tf
 
 
 class ObservationStacker(object):
-  """Class for stacking agent observations."""
+    """Class for stacking agent observations."""
 
-  def __init__(self, history_size, observation_size, num_players):
-    """Initializer for observation stacker.
+    def __init__(self, history_size, observation_size, num_players):
+        """Initializer for observation stacker.
 
-    Args:
-      history_size: int, number of time steps to stack.
-      observation_size: int, size of observation vector on one time step.
-      num_players: int, number of players.
-    """
-    self._history_size = history_size
-    self._observation_size = observation_size
-    self._num_players = num_players
-    self._obs_stacks = list()
-    for _ in range(0, self._num_players):
-      self._obs_stacks.append(np.zeros(self._observation_size *
-                                       self._history_size))
+        Args:
+          history_size: int, number of time steps to stack.
+          observation_size: int, size of observation vector on one time step.
+          num_players: int, number of players.
+        """
+        self._history_size = history_size
+        self._observation_size = observation_size
+        self._num_players = num_players
+        self._obs_stacks = list()
+        for _ in range(0, self._num_players):
+            self._obs_stacks.append(np.zeros(self._observation_size *
+                                             self._history_size))
 
-  def add_observation(self, observation, current_player):
-    """Adds observation for the current player.
+    def add_observation(self, observation, current_player):
+        """Adds observation for the current player.
 
-    Args:
-      observation: observation vector for current player.
-      current_player: int, current player id.
-    """
-    self._obs_stacks[current_player] = np.roll(self._obs_stacks[current_player],
-                                               -self._observation_size)
-    self._obs_stacks[current_player][(self._history_size - 1) *
-                                     self._observation_size:] = observation
+        Args:
+          observation: observation vector for current player.
+          current_player: int, current player id.
+        """
+        self._obs_stacks[current_player] = np.roll(self._obs_stacks[current_player],
+                                                   -self._observation_size)
+        self._obs_stacks[current_player][(self._history_size - 1) *
+                                         self._observation_size:] = observation
 
-  def get_observation_stack(self, current_player):
-    """Returns the stacked observation for current player.
+    def get_observation_stack(self, current_player):
+        """Returns the stacked observation for current player.
 
-    Args:
-      current_player: int, current player id.
-    """
+        Args:
+          current_player: int, current player id.
+        """
 
-    return self._obs_stacks[current_player]
+        return self._obs_stacks[current_player]
 
-  def reset_stack(self):
-    """Resets the observation stacks to all zero."""
+    def reset_stack(self):
+        """Resets the observation stacks to all zero."""
 
-    for i in range(0, self._num_players):
-      self._obs_stacks[i].fill(0.0)
+        for i in range(0, self._num_players):
+            self._obs_stacks[i].fill(0.0)
 
-  @property
-  def history_size(self):
-    """Returns number of steps to stack."""
-    return self._history_size
+    @property
+    def history_size(self):
+        """Returns number of steps to stack."""
+        return self._history_size
 
-  def observation_size(self):
-    """Returns the size of the observation vector after history stacking."""
-    return self._observation_size * self._history_size
+    def observation_size(self):
+        """Returns the size of the observation vector after history stacking."""
+        return self._observation_size * self._history_size
 
 
 def load_gin_configs(gin_files, gin_bindings):
-  """Loads gin configuration files.
+    """Loads gin configuration files.
 
-  Args:
-    gin_files: A list of paths to the gin configuration files for this
-      experiment.
-    gin_bindings: List of gin parameter bindings to override the values in the
-      config files.
-  """
-  gin.parse_config_files_and_bindings(gin_files,
-                                      bindings=gin_bindings,
-                                      skip_unknown=False)
+    Args:
+      gin_files: A list of paths to the gin configuration files for this
+        experiment.
+      gin_bindings: List of gin parameter bindings to override the values in the
+        config files.
+    """
+    gin.parse_config_files_and_bindings(gin_files,
+                                        bindings=gin_bindings,
+                                        skip_unknown=False)
 
 
 @gin.configurable
 def create_environment(game_type='Hanabi-Full', num_players=2):
-  """Creates the Hanabi environment.
+    """Creates the Hanabi environment.
 
-  Args:
-    game_type: Type of game to play. Currently the following are supported:
-      Hanabi-Full: Regular game.
-      Hanabi-Small: The small version of Hanabi, with 2 cards and 2 colours.
-    num_players: Int, number of players to play this game.
+    Args:
+      game_type: Type of game to play. Currently the following are supported:
+        Hanabi-Full: Regular game.
+        Hanabi-Small: The small version of Hanabi, with 2 cards and 2 colours.
+      num_players: Int, number of players to play this game.
 
-  Returns:
-    A Hanabi environment.
-  """
-  return rl_env.make(
-      environment_name=game_type, num_players=num_players, pyhanabi_path=None)
+    Returns:
+      A Hanabi environment.
+    """
+    return rl_env.make(
+        environment_name=game_type, num_players=num_players, pyhanabi_path=None)
 
 
 @gin.configurable
 def create_obs_stacker(environment, history_size=4):
-  """Creates an observation stacker.
+    """Creates an observation stacker.
 
-  Args:
-    environment: environment object.
-    history_size: int, number of steps to stack.
+    Args:
+      environment: environment object.
+      history_size: int, number of steps to stack.
 
-  Returns:
-    An observation stacker object.
-  """
+    Returns:
+      An observation stacker object.
+    """
 
-  return ObservationStacker(history_size,
-                            environment.vectorized_observation_shape()[0],
-                            environment.players)
+    return ObservationStacker(history_size,
+                              environment.vectorized_observation_shape()[0],
+                              environment.players)
+
 
 """
 FEDE COMMENT
@@ -169,53 +170,58 @@ def create_agent(environment, obs_stacker, agent_type='DQN'):
     raise ValueError('Expected valid agent_type, got {}'.format(agent_type))
 
 '''
+
+
 def format_legal_moves(legal_moves, action_dim):
-  """Returns formatted legal moves.
+    """Returns formatted legal moves.
 
-  This function takes a list of actions and converts it into a fixed size vector
-  of size action_dim. If an action is legal, its position is set to 0 and -Inf
-  otherwise.
-  Ex: legal_moves = [0, 1, 3], action_dim = 5
-      returns [0, 0, -Inf, 0, -Inf]
+    This function takes a list of actions and converts it into a fixed size vector
+    of size action_dim. If an action is legal, its position is set to 0 and -Inf
+    otherwise.
+    Ex: legal_moves = [0, 1, 3], action_dim = 5
+        returns [0, 0, -Inf, 0, -Inf]
 
-  Args:
-    legal_moves: list of legal actions.
-    action_dim: int, number of actions.
+    Args:
+      legal_moves: list of legal actions.
+      action_dim: int, number of actions.
 
-  Returns:
-    a vector of size action_dim.
-  """
-  new_legal_moves = np.full(action_dim, -float('inf'))
-  if legal_moves:
-    new_legal_moves[legal_moves] = 0
-  return new_legal_moves
+    Returns:
+      a vector of size action_dim.
+    """
+    new_legal_moves = np.full(action_dim, -float('inf'))
+    if legal_moves:
+        new_legal_moves[legal_moves] = 0
+    return new_legal_moves
 
 
 def parse_observations(observations, num_actions, obs_stacker):
-  """Deconstructs the rich observation data into relevant components.
+    """Deconstructs the rich observation data into relevant components.
 
-  Args:
-    observations: dict, containing full observations.
-    num_actions: int, The number of available actions.
-    obs_stacker: Observation stacker object.
+    Args:
+      observations: dict, containing full observations.
+      num_actions: int, The number of available actions.
+      obs_stacker: Observation stacker object.
 
-  Returns:
-    current_player: int, Whose turn it is.
-    legal_moves: `np.array` of floats, of length num_actions, whose elements
-      are -inf for indices corresponding to illegal moves and 0, for those
-      corresponding to legal moves.
-    observation_vector: Vectorized observation for the current player.
-  """
-  current_player = observations['current_player']
-  current_player_observation = (
-      observations['player_observations'][current_player])
+    Returns:
+      current_player: int, Whose turn it is.
+      legal_moves: `np.array` of floats, of length num_actions, whose elements
+        are -inf for indices corresponding to illegal moves and 0, for those
+        corresponding to legal moves.
+      observation_vector: Vectorized observation for the current player.
+    """
+    current_player = observations['current_player']
+    current_player_observation = (
+        observations['player_observations'][current_player])
 
-  legal_moves = current_player_observation['legal_moves_as_int']
-  legal_moves = format_legal_moves(legal_moves, num_actions)
+    legal_moves = current_player_observation['legal_moves_as_int']
+    legal_moves = format_legal_moves(legal_moves, num_actions)
 
-  observation_vector = current_player_observation['vectorized']
-  obs_stacker.add_observation(observation_vector, current_player)
-  observation_vector = obs_stacker.get_observation_stack(current_player)
+    observation_vector = current_player_observation['vectorized']
+    obs_stacker.add_observation(observation_vector, current_player)
+    observation_vector = obs_stacker.get_observation_stack(current_player)
 
-  return current_player, legal_moves, observation_vector
+    return current_player, legal_moves, observation_vector
 
+
+def decaying_epsilon(initial_epsilon, train_step, decay_time):
+    return initial_epsilon*((1/2)**(tf.math.floordiv(train_step, decay_time)))
