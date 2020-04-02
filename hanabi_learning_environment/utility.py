@@ -223,5 +223,7 @@ def parse_observations(observations, num_actions, obs_stacker):
     return current_player, legal_moves, observation_vector
 
 
-def decaying_epsilon(initial_epsilon, train_step, decay_time):
-    return initial_epsilon*(tf.math.pow(0.5, (tf.math.floordiv(train_step, decay_time))))
+def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='exponential'):
+    if decay_type == 'exponential':
+        decay = 0.5 ** tf.cast((train_step // decay_time), tf.float32)
+    return initial_epsilon*decay
