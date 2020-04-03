@@ -254,9 +254,14 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
+    
     # This allows us to look at resource utilization across time
     tf.summary.trace_on(profiler=True)
-    # Supposedly this is a performance improvement
+    
+    # Supposedly this is a performance improvement. According to TF devs it achieves
+    # better performance by compiling stuff specialized on shape. If the shape of the stuff
+    # going around changes a lot then it may actually get worse performance. To me it seems
+    # that everything in our code runs with same shapes/batch sizes so I think it should be good.
     tf.config.optimizer.set_jit(True)
     for step in range(num_iterations):
         # the two policies we use to collect data
