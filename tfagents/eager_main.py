@@ -100,7 +100,7 @@ def train_eval(
     gradient_clipping=0.1,
     # Params for eval
     eval_interval=1,
-    num_eval_episodes=10,
+    num_eval_episodes=1000,
     # Params for checkpoints, summaries, and logging
     train_checkpoint_interval=5,
     policy_checkpoint_interval=5,
@@ -325,11 +325,6 @@ def train_eval(
 
         
         if (epoch_counter.numpy()) % eval_interval == 1:
-            #TODO Look at line 97 in metric_utils.py because I think that maybe we don't need
-            # to put this PyTFPolicy wrapper around our agent policy... This line of code was 
-            # copied from the original file DQN_main.py, but that was probably originally designed
-            # in TF 1.x and used still the old session-graph mechanism. In TF 2.x eager_mode is default
-            # eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy)
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
             metric_utils.compute_summaries(eval_metrics,
