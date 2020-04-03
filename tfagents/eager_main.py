@@ -61,9 +61,9 @@ from functools import partial
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_integer('num_iterations', 1000,
+flags.DEFINE_integer('num_iterations', 21,
                      'Total number train/eval iterations to perform.')
-flags.DEFINE_integer('checkpoint_interval', 3,
+flags.DEFINE_integer('checkpoint_interval', 5,
                      'Number of Epochs to run before checkpointing')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
@@ -73,7 +73,7 @@ flags.DEFINE_float('learning_rate', 1e-6,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
-flags.DEFINE_list('network', [256, 128],
+flags.DEFINE_list('network', [512, 512],
                   'List of layers and corresponding nodes per layer')
 FLAGS = flags.FLAGS
 
@@ -114,9 +114,9 @@ def train_eval(
     eval_interval=1000,
     num_eval_episodes=10,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=3,
-    policy_checkpoint_interval=3,
-    rb_checkpoint_interval=3,
+    train_checkpoint_interval=5,
+    policy_checkpoint_interval=5,
+    rb_checkpoint_interval=5,
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
@@ -256,6 +256,8 @@ def train_eval(
     replay_observer = [replay_buffer.add_batch]
     # This allows us to look at resource utilization across time
     tf.summary.trace_on(profiler=True)
+    # Supposedly this is a performance improvement
+    tf.config.optimizer.set_jit(True)
     for step in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
