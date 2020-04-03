@@ -15,20 +15,6 @@
 
 # Lint as: python2, python3
 
-r"""Train and Eval DQN.
-
-To run:
-
-```bash
-tensorboard --logdir $HOME/tmp/dqn/hanabi --port 2223 &
-
-python tfagents/DQNmain.py \
-  --root_dir=$HOME/tmp/dqn/hanabi/ \
-  --alsologtostderr
-```
-
-code from https://github.com/tensorflow/agents/blob/master/tf_agents/agents/dqn/examples/v1/train_eval_gym.py
-"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -69,7 +55,7 @@ flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
 flags.DEFINE_float('gradient_clipping', 0.1,
                      'Numerical value to clip the norm of the gradients')
-flags.DEFINE_float('learning_rate', 1e-6,
+flags.DEFINE_float('learning_rate', 1e-7,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
@@ -108,7 +94,7 @@ def train_eval(
     # Params for train
     train_steps_per_iteration=25000,
     batch_size=64,
-    learning_rate=1e-6,
+    learning_rate=1e-7,
     gamma=0.99,
     reward_scale_factor=1.0,
     gradient_clipping=0.1,
