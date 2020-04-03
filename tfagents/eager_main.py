@@ -281,7 +281,7 @@ def train_eval(
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
-            num_steps=2).prefetch(5)
+            num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
