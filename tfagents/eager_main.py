@@ -126,8 +126,8 @@ def train_eval(
         eval_dir, flush_millis=summaries_flush_secs * 1000)
 
     eval_metrics = [
-        py_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
-        py_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
+        tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
+        tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
     ]
 
 
