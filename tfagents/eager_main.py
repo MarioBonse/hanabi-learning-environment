@@ -97,8 +97,8 @@ def train_eval(
     fc_layer_params=(256, 128),
     # Params for collect
     collect_episodes_per_iteration=300,
-    epsilon_greedy=0.1,
-    decay_steps=100000,
+    epsilon_greedy=0.4,
+    decay_steps=200000,
     replay_buffer_capacity=50000,
     # Params for target update
     target_update_tau=0.05,
