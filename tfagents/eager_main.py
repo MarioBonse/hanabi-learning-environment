@@ -93,7 +93,7 @@ def run_verbose_mode(agent_1, agent_2):
 @gin.configurable
 def train_eval(
     root_dir,
-    num_iterations=20,
+    num_iterations=21,
     fc_layer_params=(256, 128),
     # Params for collect
     collect_episodes_per_iteration=300,
