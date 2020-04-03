@@ -73,6 +73,8 @@ flags.DEFINE_float('learning_rate', 1e-6,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
+flags.DEFINE_bool('perf_tracing', False,
+                  'If True uses traces computation to see on Tensorboard the utilization of computational resources')
 flags.DEFINE_list('network', [512, 512],
                   'List of layers and corresponding nodes per layer')
 FLAGS = flags.FLAGS
@@ -120,6 +122,7 @@ def train_eval(
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
+    perf_tracing=False,
     summarize_grads_and_vars=False,
     num_players=2):
     """A simple train and eval for DQN."""
@@ -256,7 +259,8 @@ def train_eval(
     replay_observer = [replay_buffer.add_batch]
     
     # This allows us to look at resource utilization across time
-    tf.summary.trace_on(profiler=True)
+    if perf_tracing:
+        tf.summary.trace_on(profiler=True)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
@@ -353,7 +357,8 @@ def train_eval(
         '''
     
     # This allows us to look at resource utilization across time
-    tf.summary.trace_export(name='Performance check', profiler_outdir=train_dir)
+    if perf_tracing:
+        tf.summary.trace_export(name='Performance check', profiler_outdir=train_dir)
 
 
 
@@ -374,7 +379,8 @@ def main(_):
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
         replay_buffer_capacity=FLAGS.rb_size,
-        fc_layer_params=fc_layer_params)
+        fc_layer_params=fc_layer_params,
+        perf_tracing=FLAGS.perf_tracing)
 
 
 if __name__ == '__main__':
