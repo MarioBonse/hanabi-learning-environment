@@ -106,7 +106,7 @@ def train_eval(
     policy_checkpoint_interval=5,
     rb_checkpoint_interval=5,
     summaries_flush_secs=10,
-    agent_class=dqn_agent.DdqnAgent,
+    agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
     perf_tracing=False,
     summarize_grads_and_vars=False,
