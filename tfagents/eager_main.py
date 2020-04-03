@@ -113,14 +113,14 @@ def train_eval(
     reward_scale_factor=1.0,
     gradient_clipping=0.1,
     # Params for eval
-    eval_interval=1000,
+    eval_interval=1,
     num_eval_episodes=10,
     # Params for checkpoints, summaries, and logging
     train_checkpoint_interval=5,
     policy_checkpoint_interval=5,
     rb_checkpoint_interval=5,
     summaries_flush_secs=10,
-    agent_class=dqn_agent.DqnAgent,
+    agent_class=dqn_agent.DdqnAgent,
     debug_summaries=False,
     perf_tracing=False,
     summarize_grads_and_vars=False,
@@ -340,21 +340,22 @@ def train_eval(
         if epoch_counter.numpy() % rb_checkpoint_interval == 1:
             rb_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
-        ''' TODO
-        #FIXME compute summaries runs a PyDriver instead of DynamicEpisodeDriver, we need to
-        # adapt it so that it can also accept two policies in input and run them one after the
-        # other (implementing non-self-play).
-        if (epoch_counter.numpy() - 1) % eval_interval == 0:
-            eval_py_policy = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
-            metric_utils.compute_summaries(
-            eval_metrics,
-            eval_py_env,
-            eval_py_policy,
-            num_episodes=num_eval_episodes,
-            global_step=train_step_1,
-            log = True
-            )
-        '''
+        
+        if (epoch_counter.numpy()) % eval_interval == 1:
+            #TODO Look at line 97 in metric_utils.py because I think that maybe we don't need
+            # to put this PyTFPolicy wrapper around our agent policy... This line of code was 
+            # copied from the original file DQN_main.py, but that was probably originally designed
+            # in TF 1.x and used still the old session-graph mechanism. In TF 2.x eager_mode is default
+            eval_py_policy_1 = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
+            eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy)
+            metric_utils.compute_summaries(eval_metrics,
+                                           eval_py_env,
+                                           [eval_py_policy_1, eval_py_policy_2],
+                                           num_episodes=num_eval_episodes,
+                                           global_step=train_step_1,
+                                           log = True
+                                           )
+    
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
@@ -378,6 +379,7 @@ def main(_):
         train_checkpoint_interval=FLAGS.checkpoint_interval,
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
+        eval_interval=FLAGS.checkpoint_interval,
         replay_buffer_capacity=FLAGS.rb_size,
         fc_layer_params=fc_layer_params,
         perf_tracing=FLAGS.perf_tracing)

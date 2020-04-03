@@ -7,7 +7,7 @@ build/
 
 .venv
 venv
-.vscode
+.vscode/launch.json
 
 eval/
 train/
