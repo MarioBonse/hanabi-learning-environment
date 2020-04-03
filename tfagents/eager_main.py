@@ -93,7 +93,7 @@ def run_verbose_mode(agent_1, agent_2):
 @gin.configurable
 def train_eval(
     root_dir,
-    num_iterations=1000,
+    num_iterations=20,
     fc_layer_params=(256, 128),
     # Params for collect
     collect_episodes_per_iteration=300,
@@ -254,6 +254,8 @@ def train_eval(
     
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
+    # This allows us to look at resource utilization across time
+    tf.summary.trace_on(profiler=True)
     for step in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
@@ -342,6 +344,9 @@ def train_eval(
             log = True
             )
         '''
+    
+    # This allows us to look at resource utilization across time
+    tf.summary.trace_export(name='Performance check', profiler_outdir=train_dir)
 
 
 
