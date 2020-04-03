@@ -358,7 +358,7 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        tf.summary.trace_export(name='Performance check', profiler_outdir=train_dir)
+        tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
 
 
 
