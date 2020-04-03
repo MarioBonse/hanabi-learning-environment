@@ -364,6 +364,8 @@ def main(_):
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
     fc_layer_params = tuple([int(number) for number in FLAGS.network])
+    print(FLAGS.gradient_clipping)
+    print(type(FLAGS.gradient_clipping))
     train_eval(
         FLAGS.root_dir,
         agent_class=agent_class,
