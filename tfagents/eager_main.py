@@ -134,8 +134,7 @@ def train_eval(
     # create the enviroment
     env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
-    eval_py_env = rl_env.make(
-        'Hanabi-Full-CardKnowledge', num_players=num_players)
+    eval_py_env = tf_py_environment.TFPyEnvironment(rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players))
 
     
     train_step_1 = tf.Variable(0, trainable=False, name='global_step_1', dtype=tf.int64)
@@ -330,7 +329,7 @@ def train_eval(
             # to put this PyTFPolicy wrapper around our agent policy... This line of code was 
             # copied from the original file DQN_main.py, but that was probably originally designed
             # in TF 1.x and used still the old session-graph mechanism. In TF 2.x eager_mode is default
-            # eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy
+            # eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy)
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
             metric_utils.compute_summaries(eval_metrics,
