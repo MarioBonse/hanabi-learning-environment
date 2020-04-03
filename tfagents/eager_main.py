@@ -67,7 +67,7 @@ flags.DEFINE_integer('checkpoint_interval', 5,
                      'Number of Epochs to run before checkpointing')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
-flags.DEFINE_float('gradient_clipping', None,
+flags.DEFINE_float('gradient_clipping', 0.1,
                      'Numerical value to clip the norm of the gradients')
 flags.DEFINE_float('learning_rate', 1e-6,
                      "Learning Rate for the agent's training process")
@@ -111,7 +111,7 @@ def train_eval(
     learning_rate=1e-6,
     gamma=0.99,
     reward_scale_factor=1.0,
-    gradient_clipping=None,
+    gradient_clipping=0.1,
     # Params for eval
     eval_interval=1000,
     num_eval_episodes=10,
