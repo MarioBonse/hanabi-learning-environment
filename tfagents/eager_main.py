@@ -308,9 +308,7 @@ def train_eval(
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
-                
-        eval_policy_1 = tf_agent_1.policy
-        eval_policy_2 = tf_agent_2.policy
+        
         
         epoch_counter.assign_add(1)
         
@@ -332,8 +330,9 @@ def train_eval(
             # to put this PyTFPolicy wrapper around our agent policy... This line of code was 
             # copied from the original file DQN_main.py, but that was probably originally designed
             # in TF 1.x and used still the old session-graph mechanism. In TF 2.x eager_mode is default
-            eval_py_policy_1 = py_tf_policy.PyTFPolicy(tf_agent_1.policy)
-            eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy)
+            # eval_py_policy_2 = py_tf_policy.PyTFPolicy(tf_agent_2.policy
+            eval_py_policy_1 = tf_agent_1.policy
+            eval_py_policy_2 = tf_agent_2.policy
             metric_utils.compute_summaries(eval_metrics,
                                            eval_py_env,
                                            [eval_py_policy_1, eval_py_policy_2],
