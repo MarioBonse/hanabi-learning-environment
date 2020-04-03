@@ -336,7 +336,8 @@ def train_eval(
                                            eval_py_env,
                                            [eval_py_policy_1, eval_py_policy_2],
                                            num_episodes=num_eval_episodes,
-                                           global_step=train_step_1,
+                                           global_step=epoch_counter,
+                                           tf_summaries=False,
                                            log = True
                                            )
     
