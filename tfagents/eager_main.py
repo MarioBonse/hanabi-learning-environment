@@ -51,6 +51,8 @@ flags.DEFINE_integer('num_iterations', 21,
                      'Total number train/eval iterations to perform.')
 flags.DEFINE_integer('checkpoint_interval', 5,
                      'Number of Epochs to run before checkpointing')
+flags.DEFINE_integer('reset_at_step', None,
+                     'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
 flags.DEFINE_float('gradient_clipping', 0.1,
@@ -81,12 +83,13 @@ def run_verbose_mode(agent_1, agent_2):
 @gin.configurable
 def train_eval(
     root_dir,
-    num_iterations=21,
+    num_iterations=31,
     fc_layer_params=(256, 128),
     # Params for collect
     collect_episodes_per_iteration=300,
     epsilon_greedy=0.4,
-    decay_steps=200000,
+    decay_steps=8,
+    reset_at_step=None,
     replay_buffer_capacity=50000,
     # Params for target update
     target_update_tau=0.05,
@@ -102,9 +105,9 @@ def train_eval(
     eval_interval=1,
     num_eval_episodes=1000,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=5,
-    policy_checkpoint_interval=5,
-    rb_checkpoint_interval=5,
+    train_checkpoint_interval=10,
+    policy_checkpoint_interval=10,
+    rb_checkpoint_interval=10,
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
@@ -141,8 +144,22 @@ def train_eval(
     train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch', dtype=tf.int64)
     
-    decaying_epsilon_1 = partial(utility.decaying_epsilon, epsilon_greedy, train_step_1, decay_steps)
-    decaying_epsilon_2 = partial(utility.decaying_epsilon, epsilon_greedy, train_step_2, decay_steps)
+    #TODO current implementation of the decaying epsilon essentially requires you to pass the
+    # reset_at_step argument from the command line every time after you pass it the first time
+    # (if you wish for consistent decaying behaviour). Maybe implement some checkpointing of 
+    # something in order to avoid this requirement... The only negative side-effect of not having 
+    # this implementation is that epsilon might become very low all of a sudden if you forget to
+    # pass the reset_at_step argument after you passed it once.
+    decaying_epsilon_1 = partial(utility.decaying_epsilon,
+                                 initial_epsilon=epsilon_greedy,
+                                 train_step=epoch_counter,
+                                 decay_time=decay_steps,
+                                 reset_at_step=reset_at_step)
+    decaying_epsilon_2 = partial(utility.decaying_epsilon,
+                                 initial_epsilon=epsilon_greedy,
+                                 train_step=epoch_counter,
+                                 decay_time=decay_steps,
+                                 reset_at_step=reset_at_step)
     
     # create an agent and a network 
     tf_agent_1 = agent_class(
@@ -280,12 +297,9 @@ def train_eval(
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
-        
-        assert decaying_epsilon_1().numpy() == decaying_epsilon_2().numpy()
-        
+                
         print('EPOCH {}'.format(epoch_counter.numpy()))
-        print('The epsilon for the epsilon-greedy policy at this iteration is:', decaying_epsilon_1().numpy())
-        
+        tf.summaries.scalar(name='Epsilon', data=decaying_epsilon_1(), step=epoch_counter)        
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
@@ -388,6 +402,7 @@ def main(_):
         num_iterations=FLAGS.num_iterations,
         gradient_clipping=FLAGS.gradient_clipping,
         learning_rate=FLAGS.learning_rate,
+        reset_at_step=FLAGS.reset_at_step,
         train_checkpoint_interval=FLAGS.checkpoint_interval,
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,

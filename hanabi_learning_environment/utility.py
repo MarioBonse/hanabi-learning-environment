@@ -223,7 +223,17 @@ def parse_observations(observations, num_actions, obs_stacker):
     return current_player, legal_moves, observation_vector
 
 
-def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='exponential'):
+#TODO Implementing an automatic reset of the decaying epsilon parameter? Something maybe that looks at the variance
+# of some performance metric(s) and decides based on that if it should reset the decay of epsilon or not
+def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='exponential', reset_at_step=None):
+    if reset_at_step:
+        # The reason why these two ifs are separated and not grouped in an *and* expression (using python short-circuit)
+        # is because this function might actually get optimized by tf.function since it's called inside the agent training function
+        # and I think short-circuiting doesn't work in graph mode.
+        if reset_at_step <= train_step:
+            # Notice that this doesn't change the train_step outside the scope of this function
+            # (which is the desired behaviour)
+            train_step = reset_at_step - train_step
     if decay_type == 'exponential':
         decay = 0.5 ** tf.cast((train_step // decay_time), tf.float32)
     return initial_epsilon*decay
