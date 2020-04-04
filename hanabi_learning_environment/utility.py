@@ -233,7 +233,7 @@ def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='expone
         if reset_at_step <= train_step:
             # Notice that this doesn't change the train_step outside the scope of this function
             # (which is the desired behaviour)
-            train_step = reset_at_step - train_step
+            train_step = train_step - reset_at_step
     if decay_type == 'exponential':
         decay = 0.5 ** tf.cast((train_step // decay_time), tf.float32)
     return initial_epsilon*decay
