@@ -199,7 +199,11 @@ def train_eval(
     # in particular it is unclear whether any issues come up because of the fact that now the driver
     # is running two different policies (agents). In other words, we only modified the DynamicEpicodeDriver
     # with what was stricly necessary to make it run with two different agents. We never checked what the 
-    # implications of this would be for logging, summaries and metrics.
+    # implications of this would be for logging, summaries and metrics. It seems reasonable though that all these
+    # metrics effectively depend only on the environment and so are unaffected by what happens to the agent(s). 
+    # We thus do not expect any surprises here, but for example the metric AverageReturnMetric will most likely
+    # be considering the rewards of the two agents together; this is actually desired (for now), as it tells us 
+    # how many cards they managed to put down together
     # metrics
     train_metrics = [
         tf_metrics.NumberOfEpisodes(),
@@ -237,6 +241,26 @@ def train_eval(
     print('\n\n')
     
     # Compiled version of training functions (much faster)
+    #FIXME Tensorflow documentation of tf.function (https://www.tensorflow.org/api_docs/python/tf/function)
+    # states that autograph parameter should be set to True for Data-dependent control flow. What does this
+    # mean? Is our training function not Data-dependent? Currently common.function (which is a wrapper on the 
+    # tf.function wrapper) passes autograph=False by default.
+    #TODO Check that these functions are not being retraced more than one. To do it we just need to put
+    # a normal python print statement at the beginning of the function and if all goes well the print
+    # should be executed only once: the first time that the function is being executed and traced.
+    # See: https://www.tensorflow.org/guide/function#re-tracing
+    #TODO Maybe pass experimental_compile=True to common.function? Maybe it's not needed because 
+    # later in the code we use tf.config.optimizer.set_jit(True) which enables XLA in general?
+    # Who knows, test and look at performance I would say. Another thing to notice is that
+    # experimental_compile=True would have the added bonus of telling us if indeed it manages
+    # to compile or not since "The experimental_compile API has must-compile semantics: either 
+    # the entire function is compiled with XLA, or an errors.InvalidArgumentError exception is thrown."
+    # See: https://www.tensorflow.org/xla#explicit_compilation_with_tffunction
+    #TODO common.function passes the parameter experimental_relax_shapes=True by default. Maybe 
+    # consider instead passing it as False for efficiency... This is most likely linked to the
+    # input_signature TODO that follows
+    #TODO (low priority) add an input_signature parameter so that tf.function knows what to expect
+    # and won't adapt to the input if something strange happens (which it really shouldn't happen) 
     agent_1_train_function = common.function(tf_agent_1.train)
     agent_2_train_function = common.function(tf_agent_2.train)
     
@@ -297,7 +321,11 @@ def train_eval(
             # of various things. It seems though that they are writing on the same summary variables
             # because they're not build for the possibility of two agents in training. We need to change 
             # the agent class so that it can accept some agent_id string that it then uses to tf.name_scope
-            # all the summaries. See line 482 in dwn_agent.py to understand what I mean by tf.name_scope  
+            # all the summaries. See line 482 in dqn_agent.py to understand what I mean by tf.name_scope
+            #FIXME tensorflow documentation at https://www.tensorflow.org/tensorboard/migrate states that
+            # default_writers do not cross the tf.function boundary and should instead be called as default
+            # inside the tf.function. How does our code work then? It shouldn't because we are defining train_summary_writer
+            # as default at the beginning of train_eval() and not inside the agent_x_train_function which is a tf.function...
             losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
             losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)                
             c += 1
