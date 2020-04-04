@@ -246,7 +246,7 @@ def train_eval(
 
     rb_checkpointer = common.Checkpointer(
         ckpt_dir=os.path.join(train_dir, 'replay_buffer'),
-        max_to_keep=1,
+        max_to_keep=3,
         replay_buffer=replay_buffer)
 
     
