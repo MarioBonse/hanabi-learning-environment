@@ -323,18 +323,22 @@ def train_eval(
         if epoch_counter.numpy() % rb_checkpoint_interval == 1:
             rb_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
+        train_summary_writer.flush()
         
+        # Evaluation Run
         if (epoch_counter.numpy()) % eval_interval == 1:
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
-            metric_utils.compute_summaries(eval_metrics,
-                                           eval_py_env,
-                                           [eval_py_policy_1, eval_py_policy_2],
-                                           num_episodes=num_eval_episodes,
-                                           global_step=epoch_counter,
-                                           tf_summaries=False,
-                                           log = True
-                                           )
+            with eval_summary_writer.as_default(): 
+                metric_utils.compute_summaries(eval_metrics, 
+                                               eval_py_env,
+                                               [eval_py_policy_1, eval_py_policy_2],
+                                               num_episodes=num_eval_episodes,
+                                               global_step=epoch_counter,
+                                               tf_summaries=False,
+                                               log = True
+                                               )
+                eval_summary_writer.flush()
     
     
     # This allows us to look at resource utilization across time
