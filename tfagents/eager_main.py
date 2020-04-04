@@ -299,7 +299,7 @@ def train_eval(
         collect_policy_2 = tf_agent_2.collect_policy
                 
         print('EPOCH {}'.format(epoch_counter.numpy()))
-        tf.summaries.scalar(name='Epsilon', data=decaying_epsilon_1(), step=epoch_counter)        
+        tf.summary.scalar(name='Epsilon', data=decaying_epsilon_1(), step=epoch_counter)        
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
