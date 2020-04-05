@@ -279,7 +279,8 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        tf.summary.trace_on(profiler=True)
+        #tf.summary.trace_on(profiler=True)
+        tf.profiler.experimental.start(train_dir)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
@@ -382,7 +383,8 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
+        #tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
+        tf.profiler.experimental.stop()
 
 
 
