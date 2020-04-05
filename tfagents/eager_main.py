@@ -312,7 +312,7 @@ def train_eval(
             tf_env,
             [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
-            num_episodes=collect_episodes_per_iteration).run()
+            num_episodes=collect_episodes_per_epoch).run()
         print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
                                                                                            collect_episodes_per_epoch))
         
