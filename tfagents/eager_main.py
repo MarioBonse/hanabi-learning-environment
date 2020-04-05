@@ -142,6 +142,8 @@ def train_eval(
     ]
     
     # Profiler is used to trace computational resource utilization if required from tensorboard
+    # Note: "To profile multiple GPUs, install CUDA® Toolkit 10.2 or later. CUDA® Toolkit 10.1 supports only
+    # single GPU profiling." (from https://www.tensorflow.org/guide/profiler#install_the_profiler_and_gpu_prerequisites)
     tf.profiler.experimental.server.start(6009)
 
 
