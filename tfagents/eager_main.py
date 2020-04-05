@@ -359,17 +359,17 @@ def train_eval(
         train_summary_writer.flush()
 
         # Checkpointing
-        if (epoch_counter.numpy() % train_checkpoint_interval == 1) and not skip_checkpointing:
+        if epoch_counter.numpy() % train_checkpoint_interval == 1:
             train_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
-        if (epoch_counter.numpy() % policy_checkpoint_interval == 1) and not skip_checkpointing:
+        if epoch_counter.numpy() % policy_checkpoint_interval == 1:
             policy_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
-        if (epoch_counter.numpy() % rb_checkpoint_interval == 1) and not skip_checkpointing:
+        if epoch_counter.numpy() % rb_checkpoint_interval == 1:
             rb_checkpointer.save(global_step=epoch_counter.numpy() - 1)
         
         # Evaluation Run
-        if (epoch_counter.numpy() % eval_interval == 1) and not skip_checkpointing:
+        if epoch_counter.numpy() % eval_interval == 1:
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
             with eval_summary_writer.as_default(): 
