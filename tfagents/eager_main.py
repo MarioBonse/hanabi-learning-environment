@@ -69,12 +69,9 @@ flags.DEFINE_integer('checkpoint_interval', 10,
                      'Number of Epochs to run before checkpointing')
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
-flags.DEFINE_bool('perf_tracing', False,
-                  'If True uses traces computation to see on Tensorboard the utilization of computational resources')
 
 FLAGS = flags.FLAGS
 
-perf_tracing_default_params = (100, 100, 5)
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
@@ -119,7 +116,6 @@ def train_eval(
     summaries_flush_secs=10,
     agent_class=dqn_agent.DqnAgent,
     debug_summaries=False,
-    perf_tracing=False,
     summarize_grads_and_vars=False,
     num_players=2):
     """A simple train and eval for DQN."""
@@ -287,14 +283,6 @@ def train_eval(
     # replay buffer update for the driver
     replay_observer = [replay_buffer.add_batch]
     
-    # This allows us to look at resource utilization across time
-    if perf_tracing:
-        skip_checkpointing = True
-        print('\n\n\nLogging profile for performance analysis\n\n\n')
-        tf.profiler.experimental.start(train_dir)
-    else:
-        skip_checkpointing = False
-    
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
     # going around changes a lot then it may actually get worse performance. To me it seems
@@ -318,26 +306,12 @@ def train_eval(
         print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
                                                                                            collect_episodes_per_epoch))
         
-        if perf_tracing:
-            tf.profiler.experimental.stop()
-        '''
-        if perf_tracing:
-            time.sleep(3)
-        '''
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
             num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-        '''
-        if perf_tracing:
-            time.sleep(3)
-        '''
-        if perf_tracing:
-            skip_checkpointing = True
-            print('\n\n\nLogging profile for performance analysis\n\n\n')
-            tf.profiler.experimental.start(train_dir)
         
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
@@ -376,8 +350,6 @@ def train_eval(
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
-        if perf_tracing:
-            tf.profiler.experimental.stop()
         
         epoch_counter.assign_add(1)
         
@@ -435,8 +407,7 @@ def main(_):
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
         eval_interval=FLAGS.checkpoint_interval,
-        agent_class=agent_class,
-        perf_tracing=FLAGS.perf_tracing)
+        agent_class=agent_class)
 
 
 if __name__ == '__main__':
