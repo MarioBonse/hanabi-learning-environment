@@ -347,7 +347,7 @@ def train_eval(
             if c % (train_steps_per_epoch/10) == 0 and c != 0:
                 tf.summary.scalar("loss_agent_1", tf.math.reduce_mean(losses_1.stack()), step=train_step_1)
                 tf.summary.scalar("loss_agent_2",  tf.math.reduce_mean(losses_1.stack()), step=train_step_2)
-                print("{}% completed with {} steps done".format(int(c/train_steps_per_iteration*100), c))
+                print("{}% completed with {} steps done".format(int(c/train_steps_per_epoch*100), c))
             if c == train_steps_per_epoch:
                 break
             experience, _ = data
