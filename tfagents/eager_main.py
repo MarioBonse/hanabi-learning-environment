@@ -317,16 +317,25 @@ def train_eval(
                                                                                            collect_episodes_per_epoch))
         
         if perf_tracing:
+            tf.profiler.experimental.stop()
+        '''
+        if perf_tracing:
             time.sleep(3)
+        '''
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
             num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-
+        '''
         if perf_tracing:
             time.sleep(3)
+        '''
+        if perf_tracing:
+            skip_checkpointing = True
+            print('\n\n\nLogging profile for performance analysis\n\n\n')
+            tf.profiler.experimental.start(train_dir)
         
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
@@ -365,6 +374,8 @@ def train_eval(
         print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
         print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
+        if perf_tracing:
+            tf.profiler.experimental.stop()
         
         epoch_counter.assign_add(1)
         
@@ -397,11 +408,6 @@ def train_eval(
                                                log = True
                                                )
                 eval_summary_writer.flush()
-    
-    
-    # This allows us to look at resource utilization across time
-    if perf_tracing:
-        tf.profiler.experimental.stop()
 
 
 
