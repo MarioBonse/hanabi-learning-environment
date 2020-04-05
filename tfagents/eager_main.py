@@ -52,7 +52,7 @@ flags.DEFINE_integer('num_iterations', 31,
 flags.DEFINE_list('network', [512, 512],
                   'List of layers and corresponding nodes per layer')
 flags.DEFINE_integer('collect_episodes_per_iteration', 300,
-                     'Number of Episodes to the run in the Driver for each epoch')
+                     'Number of Episodes to the run in the Driver for collection at each epoch')
 flags.DEFINE_integer('reset_at_step', None,
                      'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
 flags.DEFINE_integer('rb_size', 50000,
@@ -63,6 +63,8 @@ flags.DEFINE_float('learning_rate', 1e-7,
                      "Learning Rate for the agent's training process")
 flags.DEFINE_float('gradient_clipping', 0.1,
                      'Numerical value to clip the norm of the gradients')
+flags.DEFINE_integer('num_eval_episodes', 1000,
+                     'Number of Episodes to the run in the Driver for evaluation')
 flags.DEFINE_integer('checkpoint_interval', 10,
                      'Number of Epochs to run before checkpointing')
 flags.DEFINE_bool('use_ddqn', False,
@@ -411,6 +413,7 @@ def main(_):
         train_steps_per_iteration=FLAGS.train_steps_per_iteration,
         learning_rate=FLAGS.learning_rate,
         gradient_clipping=FLAGS.gradient_clipping,
+        num_eval_episodes=FLAGS.num_eval_episodes,
         train_checkpoint_interval=FLAGS.checkpoint_interval,
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
