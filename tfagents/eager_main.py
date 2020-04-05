@@ -47,24 +47,29 @@ from functools import partial
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_integer('num_iterations', 21,
+flags.DEFINE_integer('num_iterations', 31,
                      'Total number train/eval iterations to perform.')
-flags.DEFINE_integer('checkpoint_interval', 5,
-                     'Number of Epochs to run before checkpointing')
+flags.DEFINE_list('network', [512, 512],
+                  'List of layers and corresponding nodes per layer')
+flags.DEFINE_integer('collect_episodes_per_iteration', 300,
+                     'Number of Episodes to the run in the Driver for each epoch')
 flags.DEFINE_integer('reset_at_step', None,
                      'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
-flags.DEFINE_float('gradient_clipping', 0.1,
-                     'Numerical value to clip the norm of the gradients')
+flags.DEFINE_integer('train_steps_per_iteration', 25000,
+                     'Number of calls to the training function for each epoch')
 flags.DEFINE_float('learning_rate', 1e-7,
                      "Learning Rate for the agent's training process")
+flags.DEFINE_float('gradient_clipping', 0.1,
+                     'Numerical value to clip the norm of the gradients')
+flags.DEFINE_integer('checkpoint_interval', 10,
+                     'Number of Epochs to run before checkpointing')
 flags.DEFINE_bool('use_ddqn', False,
                   'If True uses the DdqnAgent instead of the DqnAgent.')
 flags.DEFINE_bool('perf_tracing', False,
                   'If True uses traces computation to see on Tensorboard the utilization of computational resources')
-flags.DEFINE_list('network', [512, 512],
-                  'List of layers and corresponding nodes per layer')
+
 FLAGS = flags.FLAGS
 
 
@@ -102,7 +107,7 @@ def train_eval(
     reward_scale_factor=1.0,
     gradient_clipping=0.1,
     # Params for eval
-    eval_interval=1,
+    eval_interval=10,
     num_eval_episodes=1000,
     # Params for checkpoints, summaries, and logging
     train_checkpoint_interval=10,
@@ -278,11 +283,10 @@ def train_eval(
     replay_observer = [replay_buffer.add_batch]
     
     # This allows us to look at resource utilization across time
-    print(perf_tracing)
     if perf_tracing:
-        #tf.summary.trace_on(profiler=True)
+        tf.summary.trace_on(profiler=True)
         print('\n\n\nSupposedly Logging profile\n\n\n')
-        tf.profiler.experimental.start(train_dir)
+        #tf.profiler.experimental.start(train_dir)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
@@ -385,8 +389,8 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        #tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
-        tf.profiler.experimental.stop()
+        tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
+        #tf.profiler.experimental.stop()
 
 
 
@@ -397,23 +401,21 @@ def main(_):
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
     fc_layer_params = tuple([int(number) for number in FLAGS.network])
-    print('\n\n\n\n')
-    print(FLAGS.perf_tracing)
-    print(type(FLAGS.perf_tracing))
-    print('\n\n\n\n')
     train_eval(
-        FLAGS.root_dir,
-        agent_class=agent_class,
+        root_dir=FLAGS.root_dir,
         num_iterations=FLAGS.num_iterations,
-        gradient_clipping=FLAGS.gradient_clipping,
-        learning_rate=FLAGS.learning_rate,
+        fc_layer_params=fc_layer_params,
+        collect_episodes_per_iteration=FLAGS.collect_episodes_per_iteration,
         reset_at_step=FLAGS.reset_at_step,
+        replay_buffer_capacity=FLAGS.rb_size,
+        train_steps_per_iteration=FLAGS.train_steps_per_iteration,
+        learning_rate=FLAGS.learning_rate,
+        gradient_clipping=FLAGS.gradient_clipping,
         train_checkpoint_interval=FLAGS.checkpoint_interval,
         policy_checkpoint_interval=FLAGS.checkpoint_interval,
         rb_checkpoint_interval=FLAGS.checkpoint_interval,
         eval_interval=FLAGS.checkpoint_interval,
-        replay_buffer_capacity=FLAGS.rb_size,
-        fc_layer_params=fc_layer_params,
+        agent_class=agent_class,
         perf_tracing=FLAGS.perf_tracing)
 
 
