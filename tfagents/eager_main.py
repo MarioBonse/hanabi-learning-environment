@@ -172,6 +172,13 @@ def train_eval(
                                  decay_time=decay_steps,
                                  reset_at_step=reset_at_step)
     
+    
+    #TODO Performance Improvement: "When training on GPUs, make use of the TensorCore. GPU kernels use
+    # the TensorCore when the precision is fp16 and input/output dimensions are divisible by 8 or 16 (for int8)"
+    # (from https://www.tensorflow.org/guide/profiler#improve_device_performance). Maybe consider decreasing
+    # precision to fp16 and possibly compensating with increased model complexity to not lose performance?
+    # I mean if this allows us to use TensorCore then maybe it is worthwhile (computationally) to increase 
+    # model size and lower precision. Need to test what the impact on agent performance is.
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
