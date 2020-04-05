@@ -262,10 +262,6 @@ def train_eval(
     # states that autograph parameter should be set to True for Data-dependent control flow. What does this
     # mean? Is our training function not Data-dependent? Currently common.function (which is a wrapper on the 
     # tf.function wrapper) passes autograph=False by default.
-    #TODO Check that these functions are not being retraced more than one. To do it we just need to put
-    # a normal python print statement at the beginning of the function and if all goes well the print
-    # should be executed only once: the first time that the function is being executed and traced.
-    # See: https://www.tensorflow.org/guide/function#re-tracing
     #TODO Maybe pass experimental_compile=True to common.function? Maybe it's not needed because 
     # later in the code we use tf.config.optimizer.set_jit(True) which enables XLA in general?
     # Who knows, test and look at performance I would say. Another thing to notice is that
