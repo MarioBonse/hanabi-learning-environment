@@ -249,14 +249,14 @@ def train_eval(
         max_to_keep=3,
         replay_buffer=replay_buffer)
 
-    
+    '''
     #FIXME I believe that this is useless because Checkpointer object will already restore latest checkpoint
     # inside it's __init__ method. Should be tested though.
     print('\n\n\nTrying to restore Checkpoints for the agents and Replay Buffer')
     train_checkpointer.initialize_or_restore()
     rb_checkpointer.initialize_or_restore()
     print('\n\n')
-    
+    '''
     # Compiled version of training functions (much faster)
     #FIXME Tensorflow documentation of tf.function (https://www.tensorflow.org/api_docs/python/tf/function)
     # states that autograph parameter should be set to True for Data-dependent control flow. What does this
