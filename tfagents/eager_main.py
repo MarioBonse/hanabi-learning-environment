@@ -249,14 +249,7 @@ def train_eval(
         max_to_keep=3,
         replay_buffer=replay_buffer)
 
-    '''
-    #FIXME I believe that this is useless because Checkpointer object will already restore latest checkpoint
-    # inside it's __init__ method. Should be tested though.
-    print('\n\n\nTrying to restore Checkpoints for the agents and Replay Buffer')
-    train_checkpointer.initialize_or_restore()
-    rb_checkpointer.initialize_or_restore()
-    print('\n\n')
-    '''
+    
     # Compiled version of training functions (much faster)
     #FIXME Tensorflow documentation of tf.function (https://www.tensorflow.org/api_docs/python/tf/function)
     # states that autograph parameter should be set to True for Data-dependent control flow. What does this
@@ -334,8 +327,12 @@ def train_eval(
             # all the summaries. See line 482 in dqn_agent.py to understand what I mean by tf.name_scope
             #FIXME tensorflow documentation at https://www.tensorflow.org/tensorboard/migrate states that
             # default_writers do not cross the tf.function boundary and should instead be called as default
-            # inside the tf.function. How does our code work then? It shouldn't because we are defining train_summary_writer
-            # as default at the beginning of train_eval() and not inside the agent_x_train_function which is a tf.function...
+            # inside the tf.function. For now our code works because on the first run of the training function
+            # the code is run in non-graph mode and thus "sees" the writer (and can then use it even in subsequent
+            # graph-mode executions). This will stop working either if we start to export the compiled functions
+            # so that we don't have the first "pythonic" run of them or if for some reason we change the file_writer
+            # during execution. Should the summary writer be passed to the agent training function so that it can be set 
+            # as default from inside the boundary of tf.function? How does tf-agent solve this issue?
             losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
             losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)                
             c += 1
