@@ -74,7 +74,7 @@ flags.DEFINE_bool('perf_tracing', False,
 
 FLAGS = flags.FLAGS
 
-perf_tracing_default_params = ()
+perf_tracing_default_params = (100, 100, 5)
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
@@ -144,6 +144,8 @@ def train_eval(
         tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
         tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
     ]
+    
+    tf.profiler.experimental.server.start(6009)
 
 
     # create the enviroment
