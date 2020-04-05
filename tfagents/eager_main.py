@@ -278,9 +278,10 @@ def train_eval(
     replay_observer = [replay_buffer.add_batch]
     
     # This allows us to look at resource utilization across time
+    print(perf_tracing)
     if perf_tracing:
         #tf.summary.trace_on(profiler=True)
-        print('Supposedly Logging profile')
+        print('\n\n\nSupposedly Logging profile\n\n\n')
         tf.profiler.experimental.start(train_dir)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
@@ -396,6 +397,10 @@ def main(_):
     tf.compat.v1.enable_resource_variables()
     agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
     fc_layer_params = tuple([int(number) for number in FLAGS.network])
+    print('\n\n\n\n')
+    print(FLAGS.perf_tracing)
+    print(type(FLAGS.perf_tracing))
+    print('\n\n\n\n')
     train_eval(
         FLAGS.root_dir,
         agent_class=agent_class,
