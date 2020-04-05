@@ -286,8 +286,7 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        #tf.summary.trace_on(profiler=True)
-        print('\n\n\nSupposedly Logging profile\n\n\n')
+        print('\n\n\nLogging profile for performance analysis\n\n\n')
         tf.profiler.experimental.start(train_dir)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
@@ -312,6 +311,9 @@ def train_eval(
             num_episodes=collect_episodes_per_iteration).run()
         print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
                                                                                            collect_episodes_per_iteration))
+        
+        if perf_tracing:
+            time.sleep(3)
         # Dataset generates trajectories with shape [Bx2x...]
         # train for the first agent
         dataset = replay_buffer.as_dataset(
@@ -319,6 +321,9 @@ def train_eval(
             sample_batch_size=batch_size,
             num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
+        if perf_tracing:
+            time.sleep(3)
+        
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
         losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
