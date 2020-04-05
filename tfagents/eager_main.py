@@ -141,6 +141,7 @@ def train_eval(
         tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
     ]
     
+    # Profiler is used to trace computational resource utilization if required from tensorboard
     tf.profiler.experimental.server.start(6009)
 
 
@@ -298,6 +299,11 @@ def train_eval(
         # episode driver
         print('\nStarting to run the Driver')
         start_time = time.time()
+        #TODO Performance Optimization: TF recommends not running the metrics at every step when running/training a model, but
+        # instead to run them every few steps. Our problem is that to know how many cards it plays in one episode (or how long an episode is)
+        # we need to keep track of what's happening at every single step with no exception. I thus suggest maybe logging the metrics every 
+        # couple of episodes instead of every episode so that we can gain (maybe, needs to be tested) some performance improvement without 
+        # loosing too much info on what's happening.
         collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
             [collect_policy_1, collect_policy_2],
@@ -307,7 +313,13 @@ def train_eval(
                                                                                            collect_episodes_per_epoch))
         
         # Dataset generates trajectories with shape [Bx2x...]
-        # train for the first agent
+        #TODO Performance Optimization: Try out different batch sizes (TF usually recommends higher batch size) and see how this influences
+        # performance, keeping track of possible differences in RAM/VRAM requirements. To do this properly the variable train_steps_per_epoch
+        # should be changed appropriately (e.g. double the batch size --> half the train_steps), but it would be nice to also check that this
+        # behaves as expected and doesn't impact per-epoch-learning. Per-epoch-learning is an abstract metric I just invented that would tell you
+        # how much better a model got after an epoch... Essentially one should check that the agent manages to reach the same level of performance
+        # (measured perhaps in average_return_per_episode == number of fireworks placed) at the same epoch (more or less) even if you do this thing
+        # of doubling batch_size and halving train_steps_per_epoch.
         dataset = replay_buffer.as_dataset(
             num_parallel_calls=3,
             sample_batch_size=batch_size,
