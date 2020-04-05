@@ -280,6 +280,7 @@ def train_eval(
     # This allows us to look at resource utilization across time
     if perf_tracing:
         #tf.summary.trace_on(profiler=True)
+        print('Supposedly Logging profile')
         tf.profiler.experimental.start(train_dir)
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
