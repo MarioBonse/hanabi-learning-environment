@@ -51,13 +51,13 @@ flags.DEFINE_integer('num_iterations', 31,
                      'Total number train/eval iterations to perform.')
 flags.DEFINE_list('network', [512, 512],
                   'List of layers and corresponding nodes per layer')
-flags.DEFINE_integer('collect_episodes_per_iteration', 300,
+flags.DEFINE_integer('collect_episodes_per_epoch', 300,
                      'Number of Episodes to the run in the Driver for collection at each epoch')
 flags.DEFINE_integer('reset_at_step', None,
                      'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
-flags.DEFINE_integer('train_steps_per_iteration', 25000,
+flags.DEFINE_integer('train_steps_per_epoch', 25000,
                      'Number of calls to the training function for each epoch')
 flags.DEFINE_float('learning_rate', 1e-7,
                      "Learning Rate for the agent's training process")
@@ -74,6 +74,7 @@ flags.DEFINE_bool('perf_tracing', False,
 
 FLAGS = flags.FLAGS
 
+perf_tracing_default_params = ()
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
@@ -93,7 +94,7 @@ def train_eval(
     num_iterations=31,
     fc_layer_params=(256, 128),
     # Params for collect
-    collect_episodes_per_iteration=300,
+    collect_episodes_per_epoch=300,
     epsilon_greedy=0.4,
     decay_steps=8,
     reset_at_step=None,
@@ -102,7 +103,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_iteration=25000,
+    train_steps_per_epoch=25000,
     batch_size=64,
     learning_rate=1e-7,
     gamma=0.99,
@@ -286,15 +287,18 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
+        skip_checkpointing = True
         print('\n\n\nLogging profile for performance analysis\n\n\n')
         tf.profiler.experimental.start(train_dir)
+    else:
+        skip_checkpointing = False
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
     # going around changes a lot then it may actually get worse performance. To me it seems
     # that everything in our code runs with same shapes/batch sizes so I think it should be good.
     tf.config.optimizer.set_jit(True)
-    for step in range(num_iterations):
+    for _ in range(num_iterations):
         # the two policies we use to collect data
         collect_policy_1 = tf_agent_1.collect_policy
         collect_policy_2 = tf_agent_2.collect_policy
@@ -310,7 +314,7 @@ def train_eval(
             observers=replay_observer + train_metrics,
             num_episodes=collect_episodes_per_iteration).run()
         print('Finished running the Driver, it took {} seconds for {} episodes\n'.format(time.time() - start_time,
-                                                                                           collect_episodes_per_iteration))
+                                                                                           collect_episodes_per_epoch))
         
         if perf_tracing:
             time.sleep(3)
@@ -331,11 +335,11 @@ def train_eval(
         c = 0
         start_time  = time.time()
         for data in dataset:
-            if c % (train_steps_per_iteration/10) == 0 and c != 0:
+            if c % (train_steps_per_epoch/10) == 0 and c != 0:
                 tf.summary.scalar("loss_agent_1", tf.math.reduce_mean(losses_1.stack()), step=train_step_1)
                 tf.summary.scalar("loss_agent_2",  tf.math.reduce_mean(losses_1.stack()), step=train_step_2)
                 print("{}% completed with {} steps done".format(int(c/train_steps_per_iteration*100), c))
-            if c == train_steps_per_iteration:
+            if c == train_steps_per_epoch:
                 break
             experience, _ = data
             #FIXME _train and _loss functions of the two agents call the tf.summary to log the value
@@ -366,20 +370,21 @@ def train_eval(
         
         for train_metric in train_metrics:
             train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
+        
+        train_summary_writer.flush()
 
-        if epoch_counter.numpy() % train_checkpoint_interval == 1:
+        # Checkpointing
+        if (epoch_counter.numpy() % train_checkpoint_interval == 1) and not skip_checkpointing:
             train_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
-        if epoch_counter.numpy() % policy_checkpoint_interval == 1:
+        if (epoch_counter.numpy() % policy_checkpoint_interval == 1) and not skip_checkpointing:
             policy_checkpointer.save(global_step=epoch_counter.numpy() - 1)
 
-        if epoch_counter.numpy() % rb_checkpoint_interval == 1:
+        if (epoch_counter.numpy() % rb_checkpoint_interval == 1) and not skip_checkpointing:
             rb_checkpointer.save(global_step=epoch_counter.numpy() - 1)
-
-        train_summary_writer.flush()
         
         # Evaluation Run
-        if (epoch_counter.numpy()) % eval_interval == 1:
+        if (epoch_counter.numpy() % eval_interval == 1) and not skip_checkpointing:
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
             with eval_summary_writer.as_default(): 
@@ -396,7 +401,6 @@ def train_eval(
     
     # This allows us to look at resource utilization across time
     if perf_tracing:
-        #tf.summary.trace_export(name='Performance check', step=train_step_1, profiler_outdir=train_dir)
         tf.profiler.experimental.stop()
 
 
@@ -412,10 +416,10 @@ def main(_):
         root_dir=FLAGS.root_dir,
         num_iterations=FLAGS.num_iterations,
         fc_layer_params=fc_layer_params,
-        collect_episodes_per_iteration=FLAGS.collect_episodes_per_iteration,
+        collect_episodes_per_epoch=FLAGS.collect_episodes_per_epoch,
         reset_at_step=FLAGS.reset_at_step,
         replay_buffer_capacity=FLAGS.rb_size,
-        train_steps_per_iteration=FLAGS.train_steps_per_iteration,
+        train_steps_per_epoch=FLAGS.train_steps_per_epoch,
         learning_rate=FLAGS.learning_rate,
         gradient_clipping=FLAGS.gradient_clipping,
         num_eval_episodes=FLAGS.num_eval_episodes,
