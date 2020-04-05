@@ -119,6 +119,10 @@ def train_eval(
     train_dir = os.path.join(root_dir, 'train')
     eval_dir = os.path.join(root_dir, 'eval')
 
+    #FIXME Checkpointing doesn't synergize with tensorboard summaries, i.e. if you checkpoint
+    # at some point, execute some epochs (which are not checkpointed), stop the program and run again 
+    # from the last saved checkpoint; then tensorboard  will receive (and display) twice the summaries 
+    # relative to the epochs that had been executed, but not checkpointed. How to solve this? No idea. 
     train_summary_writer = tf.summary.create_file_writer(
         train_dir, flush_millis=summaries_flush_secs * 1000)
 
