@@ -339,8 +339,8 @@ def train_eval(
         
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 
-        losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
-        losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_iteration)
+        losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
+        losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
         c = 0
         start_time  = time.time()
         for data in dataset:
