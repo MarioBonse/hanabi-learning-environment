@@ -181,6 +181,7 @@ def train_eval(
     # precision to fp16 and possibly compensating with increased model complexity to not lose performance?
     # I mean if this allows us to use TensorCore then maybe it is worthwhile (computationally) to increase 
     # model size and lower precision. Need to test what the impact on agent performance is.
+    # See https://www.tensorflow.org/guide/keras/mixed_precision for more info
     # create an agent and a network 
     tf_agent_1 = agent_class(
         tf_env.time_step_spec(),
