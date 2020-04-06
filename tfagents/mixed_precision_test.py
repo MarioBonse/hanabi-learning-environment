@@ -50,3 +50,5 @@ enc_network_layers = q_network._encoder._postprocessing_layers
 
 print(enc_network_layers)
 
+for layer in enc_network_layers:
+    print('Outputs dtype: %s' % layer.dtype.name)
