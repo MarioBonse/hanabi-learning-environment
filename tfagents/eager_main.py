@@ -91,7 +91,7 @@ def train_eval(
     num_iterations=31,
     fc_layer_params=(256, 128),
     # Params for collect
-    collect_episodes_per_epoch=300,
+    collect_episodes_per_epoch=10,
     epsilon_greedy=0.4,
     decay_steps=8,
     reset_at_step=None,
@@ -100,7 +100,7 @@ def train_eval(
     target_update_tau=0.05,
     target_update_period=5,
     # Params for train
-    train_steps_per_epoch=25000,
+    train_steps_per_epoch=200,
     batch_size=64,
     learning_rate=1e-7,
     gamma=0.99,
