@@ -51,13 +51,13 @@ flags.DEFINE_integer('num_iterations', 31,
                      'Total number train/eval iterations to perform.')
 flags.DEFINE_list('network', [512, 512],
                   'List of layers and corresponding nodes per layer')
-flags.DEFINE_integer('collect_episodes_per_epoch', 300,
+flags.DEFINE_integer('collect_episodes_per_epoch', 10,
                      'Number of Episodes to the run in the Driver for collection at each epoch')
 flags.DEFINE_integer('reset_at_step', None,
                      'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
 flags.DEFINE_integer('rb_size', 50000,
                      'Number of transitions to store in the Replay Buffer')
-flags.DEFINE_integer('train_steps_per_epoch', 25000,
+flags.DEFINE_integer('train_steps_per_epoch', 200,
                      'Number of calls to the training function for each epoch')
 flags.DEFINE_float('learning_rate', 1e-7,
                      "Learning Rate for the agent's training process")
