@@ -45,6 +45,31 @@ from tf_agents.policies import py_tf_policy
 from functools import partial
 
 
+"""
+Nota sul training:
+Parlando con Sascha ho scoperto che l'implementazione di DeepMind di fatto sta eseguendo training
+anche all'interno di un episodio "trained on a batch of 32 transitions in intervals of 4 environment steps"
+(tenendo traccia all'inizio del fatto che non ci sono 32 transizioni nel RB quindi fai andare un po' di più).
+Io sarei per passare ad un approccio più così (magari facendo tuning di batch size ed env steps) soprattutto per
+via del Prioritized RB. E' inutile trasformare il RB in un dataset su cui poi iteri se di fatto a ogni iterazione
+traini e sulla base della loss cambi la priorità con cui il RB dovrebbe samplare... Su questo però faccio due 
+ulteriori considerazioni rispettivamente contro e a favore del cambiamento:
+    1) Il nostro RB quando diventa dataset in realtà crea un dataset infinito contenente i numeri [0, +inf]
+        e mappa ogni numero che contiene col metodo self.get_next() (di fatto cestinando l'inutile numero che
+        passa come parametro). Per via di questo forse possiamo tenere il codice così com'è perchè forse/probabilmente
+        (va verificato però fino a che punto) se updatiamo le priority sul RB mentre stiamo iterando sul dataset
+        la cosa non diventa problematica perchè a ogni iterazione viene chiamata self.get_next() che esegue con le nuove 
+        (e corrette) priority. 
+        N.B.
+        probabilmente il metodo prefetch() applicato al dataset gioca un ruolo perchè le cose già fetchate a occhio non aggiornano
+        la priorità, ma di queste sottigliezze forse possiamo fregarcene e contare che non cambino molto
+    2) Implementare il cambiamento non sarebbe particolarmente fastidioso per il driver visto che potremmo usare il
+        DynamicStepDriver che come output ti dà lo stato delle cose all'ultimo step che poi puoi passare al
+        DynamicStepDriver stesso alla prossima iterazione perchè riprenda da lì (e questo dovrebbe mantenere consistency
+        per quanto riguarda metriche importanti come AverageReturn)
+"""
+
+
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
 flags.DEFINE_integer('num_iterations', 31,
