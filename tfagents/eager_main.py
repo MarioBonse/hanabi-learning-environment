@@ -142,6 +142,8 @@ def train_eval(
 
 
     # create the enviroment
+    #TODO use ParallelPyEnvironment to run envs in parallel and see how much we can speed up.
+    # See: https://www.youtube.com/watch?v=U7g7-Jzj9qo&list=TLPQMDkwNDIwMjB-xXfzXt3B5Q&index=2 at minute 26:50
     env = utility.create_environment()                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = tf_py_environment.TFPyEnvironment(utility.create_environment())
