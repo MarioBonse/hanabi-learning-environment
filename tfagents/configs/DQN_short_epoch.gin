@@ -7,7 +7,7 @@ create_agent.target_update_tau = 0.05
 create_agent.target_update_period = 5
 create_agent.gamma = 0.99
 create_agent.reward_scale_factor = 1.0
-create_agent.debug_summaries = False,
+create_agent.debug_summaries = False
 create_agent.summarize_grads_and_vars = False
 
 
