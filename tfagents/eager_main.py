@@ -159,14 +159,14 @@ def train_eval(
     # this implementation is that epsilon might become very low all of a sudden if you forget to
     # pass the reset_at_step argument after you passed it once.
     decaying_epsilon_1 = partial(utility.decaying_epsilon,
-                                 initial_epsilon=epsilon_greedy,
+                                 initial_epsilon=initial_epsilon,
                                  train_step=epoch_counter,
-                                 decay_time=decay_steps,
+                                 decay_time=decay_time,
                                  reset_at_step=reset_at_step)
     decaying_epsilon_2 = partial(utility.decaying_epsilon,
-                                 initial_epsilon=epsilon_greedy,
+                                 initial_epsilon=initial_epsilon,
                                  train_step=epoch_counter,
-                                 decay_time=decay_steps,
+                                 decay_time=decay_time,
                                  reset_at_step=reset_at_step)
     
     
