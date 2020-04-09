@@ -181,8 +181,7 @@ def create_agent(agent_class,
         environment.time_step_spec(),
         environment.action_spec(),
         q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
-                                      environment.action_spec(),
-                                      fc_layer_params=fc_layer_params
+                                      environment.action_spec()
                                       ),
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
