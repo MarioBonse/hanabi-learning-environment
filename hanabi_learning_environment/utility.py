@@ -140,7 +140,7 @@ def create_obs_stacker(environment, history_size=4):
 
 
 @gin.configurable
-def create_agent(agent_class='DQN',
+def create_agent(agent_class,
                  environment,
                  learning_rate,
                  decaying_epsilon,
