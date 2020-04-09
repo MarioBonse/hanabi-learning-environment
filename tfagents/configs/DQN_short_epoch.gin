@@ -12,7 +12,7 @@ create_agent.summarize_grads_and_vars = False
 
 
 # Replay Buffer
-TFUniformReplayBuffer.replay_buffer_capacity = 50000
+TFUniformReplayBuffer.max_length = 50000    # RB capacity
 
 
 # Decaying Epsilon for the Epsilon-Greedy policy
