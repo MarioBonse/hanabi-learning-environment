@@ -175,7 +175,7 @@ def create_agent(agent_class,
   Raises:
     ValueError: if an unknown agent type is requested.
   """
-  if agent_type == 'DQN':
+  if agent_class == 'DQN':
     return dqn_agent.DqnAgent(
         environment.time_step_spec(),
         environment.action_spec(),
@@ -195,7 +195,7 @@ def create_agent(agent_class,
         debug_summaries=debug_summaries,
         summarize_grads_and_vars=summarize_grads_and_vars,
         train_step_counter=train_step_counter)
-  elif agent_type == 'DDQN':
+  elif agent_class == 'DDQN':
     return dqn_agent.DdqnAgent(
         environment.time_step_spec(),
         environment.action_spec(),
