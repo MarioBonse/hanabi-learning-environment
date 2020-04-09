@@ -371,7 +371,6 @@ def train_eval(
 
 def main(_):
     logging.set_verbosity(logging.INFO)
-    tf.enable_resource_variables()
     utility.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
     train_eval(root_dir=FLAGS.root_dir,)
 
