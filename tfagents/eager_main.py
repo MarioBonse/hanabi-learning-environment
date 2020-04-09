@@ -38,7 +38,6 @@ from tf_agents.environments import tf_py_environment
 from tf_agents.eval import metric_utils
 from tf_agents.metrics import py_metrics
 from tf_agents.metrics import tf_metrics
-from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
 from tf_agents.policies import py_tf_policy

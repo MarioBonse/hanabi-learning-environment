@@ -30,6 +30,7 @@ from __future__ import print_function
 import gin.tf
 from hanabi_learning_environment import rl_env
 from tf_agents.agents.dqn import dqn_agent
+from tf_agents.networks import q_network
 from tf_agents.utils import common
 import numpy as np
 import tensorflow as tf
