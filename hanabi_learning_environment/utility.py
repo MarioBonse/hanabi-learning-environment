@@ -29,6 +29,8 @@ from __future__ import print_function
 
 import gin.tf
 from hanabi_learning_environment import rl_env
+from tf_agents.agents.dqn import dqn_agent
+from tf_agents.utils import common
 import numpy as np
 import tensorflow as tf
 
@@ -137,19 +139,35 @@ def create_obs_stacker(environment, history_size=4):
                               environment.players)
 
 
-"""
-FEDE COMMENT
-Questa è da modificare con i tf.agents invece di quelli di DeepMind
-"""
-'''
 @gin.configurable
-def create_agent(environment, obs_stacker, agent_type='DQN'):
+def create_agent(agent_class='DQN',
+                 environment,
+                 learning_rate,
+                 decaying_epsilon,
+                 target_update_tau,
+                 target_update_period,
+                 gamma,
+                 reward_scale_factor,
+                 gradient_clipping,
+                 debug_summaries,
+                 summarize_grads_and_vars,
+                 train_step_counter):
   """Creates the Hanabi agent.
 
   Args:
+    agent_class: str, type of agent to construct.
     environment: The environment.
-    obs_stacker: Observation stacker object.
-    agent_type: str, type of agent to construct.
+    learning_rate: The Learning Rate
+    decaying_epsilon: Epsilon for Epsilon Greedy Policy
+    target_update_tau: Agent parameter
+    target_update_period: Agent parameter
+    gamma: Agent parameter
+    reward_scale_factor: Agent parameter
+    gradient_clipping: Agent parameter
+    debug_summaries: Agent parameter
+    summarize_grads_and_vars: Agent parameter
+    train_step_counter: The train step tf.Variable to be passed to agent
+    
 
   Returns:
     An agent for playing Hanabi.
@@ -158,18 +176,49 @@ def create_agent(environment, obs_stacker, agent_type='DQN'):
     ValueError: if an unknown agent type is requested.
   """
   if agent_type == 'DQN':
-    return dqn_agent.DQNAgent(observation_size=obs_stacker.observation_size(),
-                              num_actions=environment.num_moves(),
-                              num_players=environment.players)
-  elif agent_type == 'Rainbow':
-    return rainbow_agent.RainbowAgent(
-        observation_size=obs_stacker.observation_size(),
-        num_actions=environment.num_moves(),
-        num_players=environment.players)
+    return dqn_agent.DqnAgent(
+        environment.time_step_spec(),
+        environment.action_spec(),
+        q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
+                                      environment.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
+        epsilon_greedy=decaying_epsilon,
+        target_update_tau=target_update_tau,
+        target_update_period=target_update_period,
+        td_errors_loss_fn=common.element_wise_squared_loss,
+        gamma=gamma,
+        reward_scale_factor=reward_scale_factor,
+        gradient_clipping=gradient_clipping,
+        debug_summaries=debug_summaries,
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_counter)
+  elif agent_type == 'DDQN':
+    return dqn_agent.DdqnAgent(
+        environment.time_step_spec(),
+        environment.action_spec(),
+        q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
+                                      environment.action_spec(),
+                                      fc_layer_params=fc_layer_params
+                                      ),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
+        epsilon_greedy=decaying_epsilon,
+        target_update_tau=target_update_tau,
+        target_update_period=target_update_period,
+        td_errors_loss_fn=common.element_wise_squared_loss,
+        gamma=gamma,
+        reward_scale_factor=reward_scale_factor,
+        gradient_clipping=gradient_clipping,
+        debug_summaries=debug_summaries,
+        summarize_grads_and_vars=summarize_grads_and_vars,
+        train_step_counter=train_step_counter)
   else:
     raise ValueError('Expected valid agent_type, got {}'.format(agent_type))
 
-'''
+
 
 
 def format_legal_moves(legal_moves, action_dim):
@@ -223,8 +272,9 @@ def parse_observations(observations, num_actions, obs_stacker):
     return current_player, legal_moves, observation_vector
 
 
-#TODO Implementing an automatic reset of the decaying epsilon parameter? Something maybe that looks at the variance
+# TODO Implementing an automatic reset of the decaying epsilon parameter? Something maybe that looks at the variance
 # of some performance metric(s) and decides based on that if it should reset the decay of epsilon or not
+@gin.configurable
 def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='exponential', reset_at_step=None):
     if reset_at_step:
         # The reason why these two ifs are separated and not grouped in an *and* expression (using python short-circuit)
@@ -237,3 +287,7 @@ def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='expone
     if decay_type == 'exponential':
         decay = 0.5 ** tf.cast((train_step // decay_time), tf.float32)
     return initial_epsilon*decay
+
+
+def observation_and_action_constraint_splitter(obs):
+    return obs['observations'], obs['legal_moves']

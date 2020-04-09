@@ -31,7 +31,7 @@ from hanabi_learning_environment import rl_env
 from hanabi_learning_environment import utility
 import gin
 from six.moves import range
-import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+import tensorflow as tf
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
@@ -72,36 +72,17 @@ ulteriori considerazioni rispettivamente contro e a favore del cambiamento:
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
                     'Root directory for writing logs/summaries/checkpoints.')
-flags.DEFINE_integer('num_iterations', 31,
-                     'Total number train/eval iterations to perform.')
-flags.DEFINE_list('network', [512, 512],
-                  'List of layers and corresponding nodes per layer')
-flags.DEFINE_integer('collect_episodes_per_epoch', 10,
-                     'Number of Episodes to the run in the Driver for collection at each epoch')
-flags.DEFINE_integer('reset_at_step', None,
-                     'Epoch at which to reset the decay process of epsilon in the Epsilon-Greedy Policy')
-flags.DEFINE_integer('rb_size', 50000,
-                     'Number of transitions to store in the Replay Buffer')
-flags.DEFINE_integer('train_steps_per_epoch', 200,
-                     'Number of calls to the training function for each epoch')
-flags.DEFINE_float('learning_rate', 1e-7,
-                     "Learning Rate for the agent's training process")
-flags.DEFINE_float('gradient_clipping', 0.1,
-                     'Numerical value to clip the norm of the gradients')
-flags.DEFINE_integer('num_eval_episodes', 1000,
-                     'Number of Episodes to the run in the Driver for evaluation')
-flags.DEFINE_integer('checkpoint_interval', 10,
-                     'Number of Epochs to run before checkpointing')
-flags.DEFINE_bool('use_ddqn', False,
-                  'If True uses the DdqnAgent instead of the DqnAgent.')
+flags.DEFINE_multi_string('gin_files', [],
+                          'List of paths to gin configuration files (e.g.'
+                          '"configs/hanabi_rainbow.gin").')
+flags.DEFINE_multi_string('gin_bindings', [],
+                          'Gin bindings to override the values set in the config files '
+                          '(e.g. "train_eval.num_iterations=100").')
 
 FLAGS = flags.FLAGS
 
-
-def observation_and_action_constraint_splitter(obs):
-    return obs['observations'], obs['legal_moves']
-
-
+#TODO Very much unfinished function. it should run an episode stopping step by step
+# and printing everything we might want to see.
 def run_verbose_mode(agent_1, agent_2):
     env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=2)
     tf_env = tf_py_environment.TFPyEnvironment(env)
@@ -113,36 +94,25 @@ def run_verbose_mode(agent_1, agent_2):
 @gin.configurable
 def train_eval(
     root_dir,
-    num_iterations=31,
-    fc_layer_params=(256, 128),
+    num_iterations,
     # Params for collect
-    collect_episodes_per_epoch=10,
-    epsilon_greedy=0.4,
-    decay_steps=120,
-    reset_at_step=None,
-    replay_buffer_capacity=50000,
-    # Params for target update
-    target_update_tau=0.05,
-    target_update_period=5,
+    collect_episodes_per_epoch,
+    # Params for decaying Epsilon
+    initial_epsilon,
+    decay_time,
+    reset_at_step,
     # Params for train
-    train_steps_per_epoch=200,
-    batch_size=64,
-    learning_rate=1e-7,
-    gamma=0.99,
-    reward_scale_factor=1.0,
-    gradient_clipping=0.1,
+    train_steps_per_epoch,
+    batch_size,
     # Params for eval
-    eval_interval=10,
-    num_eval_episodes=1000,
+    eval_interval,
+    num_eval_episodes,
     # Params for checkpoints, summaries, and logging
-    train_checkpoint_interval=10,
-    policy_checkpoint_interval=10,
-    rb_checkpoint_interval=10,
+    train_checkpoint_interval,
+    policy_checkpoint_interval,
+    rb_checkpoint_interval,
     summaries_flush_secs=10,
-    agent_class=dqn_agent.DqnAgent,
-    debug_summaries=False,
-    summarize_grads_and_vars=False,
-    num_players=2):
+    ):
     """A simple train and eval for DQN."""
     root_dir = os.path.expanduser(root_dir)
     train_dir = os.path.join(root_dir, 'train')
@@ -173,9 +143,9 @@ def train_eval(
 
 
     # create the enviroment
-    env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players)                        
+    env = utility.create_environment()                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
-    eval_py_env = tf_py_environment.TFPyEnvironment(rl_env.make('Hanabi-Full-CardKnowledge', num_players=num_players))
+    eval_py_env = tf_py_environment.TFPyEnvironment(utility.create_environment())
 
     
     train_step_1 = tf.Variable(0, trainable=False, name='global_step_1', dtype=tf.int64)
@@ -208,54 +178,18 @@ def train_eval(
     # model size and lower precision. Need to test what the impact on agent performance is.
     # See https://www.tensorflow.org/guide/keras/mixed_precision for more info
     # create an agent and a network 
-    tf_agent_1 = agent_class(
-        tf_env.time_step_spec(),
-        tf_env.action_spec(),
-        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
-                                      tf_env.action_spec(),
-                                      fc_layer_params=fc_layer_params
-                                      ),
-        optimizer=tf.compat.v1.train.AdamOptimizer(
-            learning_rate=learning_rate),
-        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=decaying_epsilon_1,
-        target_update_tau=target_update_tau,
-        target_update_period=target_update_period,
-        td_errors_loss_fn=common.element_wise_squared_loss,
-        gamma=gamma,
-        reward_scale_factor=reward_scale_factor,
-        gradient_clipping=gradient_clipping,
-        debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars,
-        train_step_counter=train_step_1)
+    tf_agent_1 = utility.create_agent(environment=tf_env,
+                                      decaying_epsilon=decaying_epsilon_1,
+                                      train_step_counter=train_step_1)
 
     # Second agent. we can have as many as we want
-    tf_agent_2 = agent_class(
-        tf_env.time_step_spec(),
-        tf_env.action_spec(),
-        q_network= q_network.QNetwork(tf_env.time_step_spec().observation['observations'],
-                                      tf_env.action_spec(),
-                                      fc_layer_params=fc_layer_params
-                                      ),
-        optimizer=tf.compat.v1.train.AdamOptimizer(
-            learning_rate=learning_rate),
-        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=decaying_epsilon_2,
-        target_update_tau=target_update_tau,
-        target_update_period=target_update_period,
-        td_errors_loss_fn=common.element_wise_squared_loss,
-        gamma=gamma,
-        reward_scale_factor=reward_scale_factor,
-        gradient_clipping=gradient_clipping,
-        debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars,
-        train_step_counter=train_step_2)
-
+    tf_agent_2 = utility.create_agent(environment=tf_env,
+                                      decaying_epsilon=decaying_epsilon_2,
+                                      train_step_counter=train_step_2)
     # replay buffer
     replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
         tf_agent_1.collect_data_spec,
-        batch_size=tf_env.batch_size,
-        max_length=replay_buffer_capacity)
+        batch_size=tf_env.batch_size)
 
     
     #FIXME we haven't really looked at how train_metrics are managed in the driver when it's running
@@ -323,6 +257,7 @@ def train_eval(
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
     # going around changes a lot then it may actually get worse performance. To me it seems
     # that everything in our code runs with same shapes/batch sizes so I think it should be good.
+    # Would be nice if at some point someone took the time to actually test this :)
     tf.config.optimizer.set_jit(True)
     for _ in range(num_iterations):
         # the two policies we use to collect data
@@ -436,25 +371,9 @@ def train_eval(
 
 def main(_):
     logging.set_verbosity(logging.INFO)
-    tf.compat.v1.enable_resource_variables()
-    agent_class = dqn_agent.DdqnAgent if FLAGS.use_ddqn else dqn_agent.DqnAgent
-    fc_layer_params = tuple([int(number) for number in FLAGS.network])
-    train_eval(
-        root_dir=FLAGS.root_dir,
-        num_iterations=FLAGS.num_iterations,
-        fc_layer_params=fc_layer_params,
-        collect_episodes_per_epoch=FLAGS.collect_episodes_per_epoch,
-        reset_at_step=FLAGS.reset_at_step,
-        replay_buffer_capacity=FLAGS.rb_size,
-        train_steps_per_epoch=FLAGS.train_steps_per_epoch,
-        learning_rate=FLAGS.learning_rate,
-        gradient_clipping=FLAGS.gradient_clipping,
-        num_eval_episodes=FLAGS.num_eval_episodes,
-        train_checkpoint_interval=FLAGS.checkpoint_interval,
-        policy_checkpoint_interval=FLAGS.checkpoint_interval,
-        rb_checkpoint_interval=FLAGS.checkpoint_interval,
-        eval_interval=FLAGS.checkpoint_interval,
-        agent_class=agent_class)
+    tf.enable_resource_variables()
+    utility.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
+    train_eval(root_dir=FLAGS.root_dir,)
 
 
 if __name__ == '__main__':
