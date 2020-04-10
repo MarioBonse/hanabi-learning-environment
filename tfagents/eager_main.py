@@ -32,6 +32,9 @@ from hanabi_learning_environment import utility
 import gin
 from six.moves import range
 import tensorflow as tf
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
@@ -355,6 +358,9 @@ def train_eval(
         if epoch_counter.numpy() % eval_interval == 0:
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
+            #FIXME For some unknown reason eval_summary_writer is actually not writing anything
+            # Is it because there is some problem and it's being written to train_summary_writer or
+            # is it not being called?? Someone investigate this.
             with eval_summary_writer.as_default(): 
                 metric_utils.compute_summaries(eval_metrics, 
                                                eval_py_env,
