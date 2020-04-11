@@ -153,71 +153,70 @@ def create_agent(agent_class,
                  debug_summaries,
                  summarize_grads_and_vars,
                  train_step_counter):
-  """Creates the Hanabi agent.
+    """Creates the Hanabi agent.
 
-  Args:
-    agent_class: str, type of agent to construct.
-    environment: The environment.
-    learning_rate: The Learning Rate
-    decaying_epsilon: Epsilon for Epsilon Greedy Policy
-    target_update_tau: Agent parameter
-    target_update_period: Agent parameter
-    gamma: Agent parameter
-    reward_scale_factor: Agent parameter
-    gradient_clipping: Agent parameter
-    debug_summaries: Agent parameter
-    summarize_grads_and_vars: Agent parameter
-    train_step_counter: The train step tf.Variable to be passed to agent
-    
+    Args:
+      agent_class: str, type of agent to construct.
+      environment: The environment.
+      learning_rate: The Learning Rate
+      decaying_epsilon: Epsilon for Epsilon Greedy Policy
+      target_update_tau: Agent parameter
+      target_update_period: Agent parameter
+      gamma: Agent parameter
+      reward_scale_factor: Agent parameter
+      gradient_clipping: Agent parameter
+      debug_summaries: Agent parameter
+      summarize_grads_and_vars: Agent parameter
+      train_step_counter: The train step tf.Variable to be passed to agent
 
-  Returns:
-    An agent for playing Hanabi.
 
-  Raises:
-    ValueError: if an unknown agent type is requested.
-  """
-  if agent_class == 'DQN':
-    return dqn_agent.DqnAgent(
-        environment.time_step_spec(),
-        environment.action_spec(),
-        q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
-                                      environment.action_spec()
-                                      ),
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=decaying_epsilon,
-        target_update_tau=target_update_tau,
-        target_update_period=target_update_period,
-        td_errors_loss_fn=common.element_wise_squared_loss,
-        gamma=gamma,
-        reward_scale_factor=reward_scale_factor,
-        gradient_clipping=gradient_clipping,
-        debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars,
-        train_step_counter=train_step_counter)
-  elif agent_class == 'DDQN':
-    return dqn_agent.DdqnAgent(
-        environment.time_step_spec(),
-        environment.action_spec(),
-        q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
-                                      environment.action_spec(),
-                                      fc_layer_params=fc_layer_params
-                                      ),
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
-        epsilon_greedy=decaying_epsilon,
-        target_update_tau=target_update_tau,
-        target_update_period=target_update_period,
-        td_errors_loss_fn=common.element_wise_squared_loss,
-        gamma=gamma,
-        reward_scale_factor=reward_scale_factor,
-        gradient_clipping=gradient_clipping,
-        debug_summaries=debug_summaries,
-        summarize_grads_and_vars=summarize_grads_and_vars,
-        train_step_counter=train_step_counter)
-  else:
-    raise ValueError('Expected valid agent_type, got {}'.format(agent_type))
+    Returns:
+      An agent for playing Hanabi.
 
+    Raises:
+      ValueError: if an unknown agent type is requested.
+    """
+    if agent_class == 'DQN':
+        return dqn_agent.DqnAgent(
+            environment.time_step_spec(),
+            environment.action_spec(),
+            q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
+                                         environment.action_spec()
+                                         ),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
+            epsilon_greedy=decaying_epsilon,
+            target_update_tau=target_update_tau,
+            target_update_period=target_update_period,
+            td_errors_loss_fn=common.element_wise_squared_loss,
+            gamma=gamma,
+            reward_scale_factor=reward_scale_factor,
+            gradient_clipping=gradient_clipping,
+            debug_summaries=debug_summaries,
+            summarize_grads_and_vars=summarize_grads_and_vars,
+            train_step_counter=train_step_counter)
+    elif agent_class == 'DDQN':
+        return dqn_agent.DdqnAgent(
+            environment.time_step_spec(),
+            environment.action_spec(),
+            q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
+                                         environment.action_spec(),
+                                         ),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
+            epsilon_greedy=decaying_epsilon,
+            target_update_tau=target_update_tau,
+            target_update_period=target_update_period,
+            td_errors_loss_fn=common.element_wise_squared_loss,
+            gamma=gamma,
+            reward_scale_factor=reward_scale_factor,
+            gradient_clipping=gradient_clipping,
+            debug_summaries=debug_summaries,
+            summarize_grads_and_vars=summarize_grads_and_vars,
+            train_step_counter=train_step_counter)
+    else:
+        raise ValueError(
+            'Expected valid agent_type, got {}'.format(agent_class))
 
 
 
