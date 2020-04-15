@@ -1,5 +1,5 @@
-# DQN Agent.
-create_agent.agent_class = 'DQN'
+# Agent.
+create_agent.agent_class = 'DDQN'
 QNetwork.fc_layer_params = (512, 512)
 create_agent.learning_rate = 1e-7
 create_agent.gradient_clipping = 0.1
