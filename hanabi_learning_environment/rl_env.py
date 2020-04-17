@@ -24,6 +24,7 @@ import abc
 from .utility import *
 import tensorflow as tf
 import numpy as np
+import gin.tf
 from tf_agents.environments import py_environment
 from tf_agents.environments import tf_environment
 from tf_agents.environments import tf_py_environment
@@ -40,6 +41,7 @@ MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 # Environment API
 #-------------------------------------------------------------------------------
 
+@gin.configurable
 class HanabiEnv(py_environment.PyEnvironment):
 	"""RL interface to a Hanabi environment.
 
