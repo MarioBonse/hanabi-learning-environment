@@ -17,6 +17,7 @@ TFUniformReplayBuffer.max_length = 50000    # RB capacity
 
 # Decaying Epsilon for the Epsilon-Greedy policy
 train_eval.initial_epsilon = 0.5
+train_eval.decay_type = 'exponential'
 train_eval.decay_time = 360
 train_eval.reset_at_step = None         # can be None
 

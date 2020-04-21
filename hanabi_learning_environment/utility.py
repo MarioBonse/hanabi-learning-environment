@@ -285,6 +285,8 @@ def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='expone
             train_step = train_step - reset_at_step
     if decay_type == 'exponential':
         decay = 0.5 ** tf.cast((train_step // decay_time), tf.float32)
+    elif decay_type == None:
+        decay = 1
     return initial_epsilon*decay
 
 

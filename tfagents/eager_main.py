@@ -101,6 +101,7 @@ def train_eval(
     collect_episodes_per_epoch,
     # Params for decaying Epsilon
     initial_epsilon,
+    decay_type,
     decay_time,
     reset_at_step,
     # Params for train
@@ -165,11 +166,13 @@ def train_eval(
     decaying_epsilon_1 = partial(utility.decaying_epsilon,
                                  initial_epsilon=initial_epsilon,
                                  train_step=epoch_counter,
+                                 decay_type=decay_type,
                                  decay_time=decay_time,
                                  reset_at_step=reset_at_step)
     decaying_epsilon_2 = partial(utility.decaying_epsilon,
                                  initial_epsilon=initial_epsilon,
                                  train_step=epoch_counter,
+                                 decay_type=decay_type,
                                  decay_time=decay_time,
                                  reset_at_step=reset_at_step)
     
