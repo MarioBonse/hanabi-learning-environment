@@ -568,23 +568,23 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
 						"max_life_tokens": 3,
 						"observation_type": pyhanabi.AgentObservationType.MINIMAL.value
 				})
-	elif environment_name == "Hanabi-Small":
+	elif environment_name == "Hanabi-Small-CardKnowledge":
 		return HanabiEnv(
 				config={
 						"colors":
-								2,
+								3,
 						"ranks":
 								5,
 						"players":
 								num_players,
 						"hand_size":
-								2,
-						"max_information_tokens":
 								3,
+						"max_information_tokens":
+								8,
 						"max_life_tokens":
-								1,
+								3,
 						"observation_type":
-								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
+								pyhanabi.AgentObservationType.SEER.value
 				})
 	elif environment_name == "Hanabi-Very-Small":
 		return HanabiEnv(
