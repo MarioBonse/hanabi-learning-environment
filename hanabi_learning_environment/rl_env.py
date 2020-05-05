@@ -58,7 +58,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 	```
 	"""
 
-	def __init__(self, config):
+	def __init__(self, config, gamma=0.95, history_size=4):
 		r"""Creates an environment with the given game configuration.
 
 		Args:
@@ -79,13 +79,12 @@ class HanabiEnv(py_environment.PyEnvironment):
 		super().__init__()
 		assert isinstance(config, dict), "Expected config to be of type dict."
 		self.game = pyhanabi.HanabiGame(config)
-		self.gamma = 0.95		# Parameter that could be configured to be passed via gin, but haven't done yet
-		self.history_size=4		# Parameter that could be configured to be passed via gin, but haven't done yet
-
+		
+		self.gamma = gamma
 		self.observation_encoder = pyhanabi.ObservationEncoder(
 				self.game, pyhanabi.ObservationEncoderType.CANONICAL)
 		self.players = self.game.num_players()
-		self.obs_stacker = create_obs_stacker(self, history_size=self.history_size)
+		self.obs_stacker = create_obs_stacker(self, history_size=history_size)
 		self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
                             	  'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_)}
 		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
