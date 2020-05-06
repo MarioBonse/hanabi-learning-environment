@@ -219,7 +219,6 @@ def create_agent(agent_class,
             'Expected valid agent_type, got {}'.format(agent_class))
 
 
-
 def format_legal_moves(legal_moves, action_dim):
     """Returns formatted legal moves.
 
@@ -240,6 +239,33 @@ def format_legal_moves(legal_moves, action_dim):
     if legal_moves:
         new_legal_moves[legal_moves] = 0
     return new_legal_moves
+
+
+# Only works for Full Hanabi (5 colors, 5 cards in hand)
+def transform_obs(obs):
+    game_obs = [obs["current_player"], obs["life_tokens"], obs["information_tokens"],
+                obs["num_players"], obs["deck_size"], obs["fireworks"]['R'],
+                obs["fireworks"]['Y'], obs["fireworks"]['G'], obs["fireworks"]['W'],
+                obs["fireworks"]['B']]
+
+    color_order = ['R', 'Y', 'G', 'W', 'B']
+    hands_obs = [[color_order.index(card['color']), card['rank']]
+                 for hand in obs["observed_hands"] for card in hand]
+
+    
+    knowledge_obs = []
+    for player_hints in obs["card_knowledge"]:
+        hints_obs = []
+        for hint in player_hints:
+            color = color_order.index(hint['color']) if hint['color'] else -1
+            rank = hint['rank'] if hint['rank'] else -1
+            hints_obs.append([color, hint])
+        knowledge_obs.append(hints_obs)
+    
+    assert np.array(knowledge_obs).shape == (2, 5)
+    assert np.array(hands_obs).shape == (10)
+    
+    return [game_obs, hands_obs, knowledge_obs]
 
 
 def parse_observations(observations, num_actions, obs_stacker):
@@ -267,12 +293,10 @@ def parse_observations(observations, num_actions, obs_stacker):
     observation_vector = current_player_observation['vectorized']
     obs_stacker.add_observation(observation_vector, current_player)
     observation_vector = obs_stacker.get_observation_stack(current_player)
-    
+
     # These observations are meant for rule-based agents only. Note that they only carry information
     # about the state of the game at this timestep without any history of what happened.
-    current_player_observation.pop('pyhanabi')
-    current_player_observation.pop('vectorized')
-    non_encoded_obs = current_player_observation
+    non_encoded_obs = transform_obs(current_player_observation)
 
     return current_player, legal_moves, observation_vector, non_encoded_obs
 
