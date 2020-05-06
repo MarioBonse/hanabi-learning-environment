@@ -86,7 +86,8 @@ class HanabiEnv(py_environment.PyEnvironment):
 		self.players = self.game.num_players()
 		self.obs_stacker = create_obs_stacker(self, history_size=history_size)
 		self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
-                            	  'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_)}
+									'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_),
+									'non_encoded_obs': array_spec.ArraySpec(shape=(1,), dtype='object')}
 		self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
 
 	def observation_spec(self):
@@ -204,7 +205,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 		obs["current_player"] = self.state.cur_player()
 		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		observations_and_legal_moves = {'observations': current_agent_obs,
-                                  		'legal_moves': np.logical_not(legal_moves)}
+								  		'legal_moves': np.logical_not(legal_moves)}
 		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
@@ -345,13 +346,14 @@ class HanabiEnv(py_environment.PyEnvironment):
 		"""
 
 		obs = self._make_observation_all_players()
-		current_player, legal_moves, current_agent_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
+		current_player, legal_moves, current_agent_obs, non_encoded_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		done = self.state.is_terminal()
 		# Reward is score differential. May be large and negative at game end.
 		reward = self.state.score() - last_score
 
 		observations_and_legal_moves = {'observations': current_agent_obs,
-                                  		'legal_moves': np.logical_not(legal_moves)}
+								  		'legal_moves': np.logical_not(legal_moves),
+										'non_encoded_obs': non_encoded_obs}
 		if done:
 			return ts.termination(observations_and_legal_moves, reward)
 		else:
@@ -542,7 +544,7 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
 								pyhanabi.AgentObservationType.CARD_KNOWLEDGE.value
 				})
 	elif environment_name == "Hanabi-Full-CardKnowledge":
-    		return HanabiEnv(
+			return HanabiEnv(
 				config={
 						"colors":
 								5,

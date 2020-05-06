@@ -267,8 +267,14 @@ def parse_observations(observations, num_actions, obs_stacker):
     observation_vector = current_player_observation['vectorized']
     obs_stacker.add_observation(observation_vector, current_player)
     observation_vector = obs_stacker.get_observation_stack(current_player)
+    
+    # These observations are meant for rule-based agents only. Note that they only carry information
+    # about the state of the game at this timestep without any history of what happened.
+    current_player_observation.pop('pyhanabi')
+    current_player_observation.pop('vectorized')
+    non_encoded_obs = current_player_observation
 
-    return current_player, legal_moves, observation_vector
+    return current_player, legal_moves, observation_vector, non_encoded_obs
 
 
 # TODO Implementing an automatic reset of the decaying epsilon parameter? Something maybe that looks at the variance
