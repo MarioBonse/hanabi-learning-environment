@@ -251,6 +251,13 @@ def transform_obs(obs):
     color_order = ['R', 'Y', 'G', 'W', 'B']
     hands_obs = [[color_order.index(card['color']), card['rank']]
                  for hand in obs["observed_hands"] for card in hand]
+    for hand in obs["observed_hands"]:
+        hand_obs = []
+        for card in hand:
+            color = color_order.index(card['color']) if card['color'] else -1
+            rank = card['rank'] if card['rank'] else -1
+            hand_obs.append([color, rank])
+        hands_obs.append(hand_obs)
 
     
     knowledge_obs = []
@@ -259,7 +266,7 @@ def transform_obs(obs):
         for hint in player_hints:
             color = color_order.index(hint['color']) if hint['color'] else -1
             rank = hint['rank'] if hint['rank'] else -1
-            hints_obs.append([color, hint])
+            hints_obs.append([color, rank])
         knowledge_obs.append(hints_obs)
     
     assert np.array(knowledge_obs).shape == (2, 5)
