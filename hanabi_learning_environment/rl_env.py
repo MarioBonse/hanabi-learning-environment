@@ -204,9 +204,11 @@ class HanabiEnv(py_environment.PyEnvironment):
 		obs = self._make_observation_all_players()
 		obs["current_player"] = self.state.cur_player()
 		current_player, legal_moves, current_agent_obs, non_encoded_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
+		print(np.array(list(non_encoded_obs.items())))
+		print(np.array(list(non_encoded_obs.items())).shape)
 		observations_and_legal_moves = {'observations': current_agent_obs,
 								  		'legal_moves': np.logical_not(legal_moves),
-										'non_encoded_obs': non_encoded_obs}
+										'non_encoded_obs': np.array(list(non_encoded_obs.items()))}
 		return ts.restart(observations_and_legal_moves)
 
 	def _step(self, action):
@@ -354,7 +356,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 
 		observations_and_legal_moves = {'observations': current_agent_obs,
 								  		'legal_moves': np.logical_not(legal_moves),
-										'non_encoded_obs': non_encoded_obs}
+										'non_encoded_obs': np.array(list(non_encoded_obs.items()))}
 		if done:
 			return ts.termination(observations_and_legal_moves, reward)
 		else:
