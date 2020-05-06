@@ -32,7 +32,6 @@ from hanabi_learning_environment import utility
 import gin
 from six.moves import range
 import tensorflow as tf
-import tensorflow as tf
 gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 from tf_agents.agents.dqn import dqn_agent

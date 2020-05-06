@@ -325,16 +325,13 @@ class HanabiEnv(py_environment.PyEnvironment):
         #action = int(np.argmax(action))
         if self._current_time_step.is_last():
             return self.reset()
-        if isinstance(action, dict):
-            # Convert dict action HanabiMove
-            action = self._build_move(action)
         elif isinstance(action, np.ndarray) and (action.dtype == np.int64):
             # Convert int action into a Hanabi move.
             action = self.game.get_move(int(action))
         else:
-            print(int(action), type(action),action.dtype)
+            print(type(action), action.dtype)
             print(action)
-            raise ValueError("Expected action as dict or int, got: {}".format(
+            raise ValueError("Expected action as int, got: {}".format(
                     action))
 
         last_score = self.state.score()
