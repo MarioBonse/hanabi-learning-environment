@@ -261,7 +261,7 @@ def transform_obs(obs):
         hands_obs.append(hand_obs)
 
     
-    knowledge_obs = np.ones(shape=(2,5,2))*(-2)
+    knowledge_obs = np.ones(shape=(2,5,2), dtype=np.int64)*(-2)
     for i, player_hints in enumerate(obs["card_knowledge"]):
         for j, hint in enumerate(player_hints):
             knowledge_obs[i,j,0] = color_order.index(hint['color']) if hint['color'] else -1
