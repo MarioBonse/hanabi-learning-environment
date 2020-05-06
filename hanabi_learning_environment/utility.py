@@ -249,8 +249,7 @@ def transform_obs(obs):
                 obs["fireworks"]['B']]
 
     color_order = ['R', 'Y', 'G', 'W', 'B']
-    hands_obs = [[color_order.index(card['color']), card['rank']]
-                 for hand in obs["observed_hands"] for card in hand]
+    hands_obs = []
     for hand in obs["observed_hands"]:
         hand_obs = []
         for card in hand:
