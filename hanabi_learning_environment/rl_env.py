@@ -86,7 +86,10 @@ class HanabiEnv(py_environment.PyEnvironment):
         self.players = self.game.num_players()
         self.obs_stacker = create_obs_stacker(self, history_size=history_size)
         self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
-                                  'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_)}
+                                  'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_),
+                                  'game_obs': array_spec.ArraySpec(shape=(10,), dtype=np.int32),
+                                  'hand_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int32),
+                                  'knowledge_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int32)}
         self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
 
     def observation_spec(self):
@@ -205,7 +208,10 @@ class HanabiEnv(py_environment.PyEnvironment):
         current_player, legal_moves, current_agent_obs, non_encoded_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
         
         observations_and_legal_moves = {'observations': current_agent_obs,
-                                        'legal_moves': np.logical_not(legal_moves)}
+                                        'legal_moves': np.logical_not(legal_moves),
+                                        'game_obs': non_encoded_obs[0],
+                                        'hand_obs': non_encoded_obs[1],
+                                        'knowledge_obs': non_encoded_obs[2]}
         return ts.restart(observations_and_legal_moves)
 
     def _step(self, action):
@@ -352,7 +358,10 @@ class HanabiEnv(py_environment.PyEnvironment):
         reward = self.state.score() - last_score
 
         observations_and_legal_moves = {'observations': current_agent_obs,
-                                        'legal_moves': np.logical_not(legal_moves)}
+                                        'legal_moves': np.logical_not(legal_moves),
+                                        'game_obs': non_encoded_obs[0],
+                                        'hand_obs': non_encoded_obs[1],
+                                        'knowledge_obs': non_encoded_obs[2]}
         if done:
             return ts.termination(observations_and_legal_moves, reward)
         else:

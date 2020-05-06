@@ -256,6 +256,8 @@ def transform_obs(obs):
             color = color_order.index(card['color']) if card['color'] else -1
             rank = card['rank'] if card['rank'] else -1
             hand_obs.append([color, rank])
+        if len(hand_obs) < 5:
+            hand_obs.append([-2, -2])
         hands_obs.append(hand_obs)
 
     
@@ -266,10 +268,12 @@ def transform_obs(obs):
             color = color_order.index(hint['color']) if hint['color'] else -1
             rank = hint['rank'] if hint['rank'] else -1
             hints_obs.append([color, rank])
+        if len(hand_obs) < 5:
+            hints_obs.append([-2, -2])
         knowledge_obs.append(hints_obs)
     
-    assert np.array(knowledge_obs).shape == (2, 5)
-    assert np.array(hands_obs).shape == (10)
+    assert np.array(knowledge_obs).shape == (2, 5, 2), np.array(knowledge_obs).shape
+    assert np.array(hands_obs).shape == (2, 5, 2), np.array(hands_obs).shape
     
     return [game_obs, hands_obs, knowledge_obs]
 
