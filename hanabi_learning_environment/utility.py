@@ -275,7 +275,7 @@ def transform_obs(obs):
     assert np.array(knowledge_obs).shape == (2, 5, 2), np.array(knowledge_obs).shape
     assert np.array(hands_obs).shape == (2, 5, 2), np.array(hands_obs).shape
     
-    return [game_obs, hands_obs, knowledge_obs]
+    return [np.array(game_obs), np.array(hands_obs), np.array(knowledge_obs)]
 
 
 def parse_observations(observations, num_actions, obs_stacker):
