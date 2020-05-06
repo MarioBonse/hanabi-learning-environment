@@ -206,7 +206,7 @@ class HanabiEnv(py_environment.PyEnvironment):
 		current_player, legal_moves, current_agent_obs, non_encoded_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
 		print(np.array(list(non_encoded_obs.items())))
 		print(np.array(list(non_encoded_obs.items())).shape)
-  		print(np.array(list(non_encoded_obs.items())).dtype)
+		print(np.array(list(non_encoded_obs.items())).dtype)
 		observations_and_legal_moves = {'observations': current_agent_obs,
 								  		'legal_moves': np.logical_not(legal_moves),
 										'non_encoded_obs': np.array(list(non_encoded_obs.items()))}
