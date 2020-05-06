@@ -87,9 +87,9 @@ class HanabiEnv(py_environment.PyEnvironment):
         self.obs_stacker = create_obs_stacker(self, history_size=history_size)
         self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
                                   'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_),
-                                  'game_obs': array_spec.ArraySpec(shape=(10,), dtype=np.int32),
-                                  'hand_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int32),
-                                  'knowledge_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int32)}
+                                  'game_obs': array_spec.ArraySpec(shape=(10,), dtype=np.int64),
+                                  'hand_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int64),
+                                  'knowledge_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int64)}
         self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
 
     def observation_spec(self):
