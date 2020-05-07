@@ -336,7 +336,6 @@ class HanabiEnv(py_environment.PyEnvironment):
 
         last_score = self.state.score()
         # Apply the action to the state.
-        print("\nI'm about to apply the move, move certificate", action)
         self.state.apply_move(action)
 
         while self.state.cur_player() == pyhanabi.CHANCE_PLAYER_ID:
@@ -360,8 +359,7 @@ class HanabiEnv(py_environment.PyEnvironment):
                                         'game_obs': non_encoded_obs[0],
                                         'hand_obs': non_encoded_obs[1],
                                         'knowledge_obs': non_encoded_obs[2]}
-        print(observations_and_legal_moves, '\n')
-        
+                
         if done:
             return ts.termination(observations_and_legal_moves, reward)
         else:
