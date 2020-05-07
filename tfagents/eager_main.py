@@ -211,7 +211,7 @@ def train_eval(
     train_metrics = [
         tf_metrics.NumberOfEpisodes(),
         tf_metrics.EnvironmentSteps(),
-        tf_metrics.AverageReturnMetric(),
+        tf_metrics.HanabiAverageReturnMetric(),
         tf_metrics.AverageEpisodeLengthMetric(),
     ]
 
