@@ -79,7 +79,7 @@ class HanabiEnv(py_environment.PyEnvironment):
         super().__init__()
         assert isinstance(config, dict), "Expected config to be of type dict."
         self.game = pyhanabi.HanabiGame(config)
-        
+        n_colors = config['colors']        
         self.gamma = gamma
         self.observation_encoder = pyhanabi.ObservationEncoder(
                 self.game, pyhanabi.ObservationEncoderType.CANONICAL)
@@ -87,9 +87,9 @@ class HanabiEnv(py_environment.PyEnvironment):
         self.obs_stacker = create_obs_stacker(self, history_size=history_size)
         self._observation_spec = {'observations': array_spec.ArraySpec(shape=(self.obs_stacker.observation_size(),), dtype=np.float64),
                                   'legal_moves': array_spec.ArraySpec(shape=(self.num_moves(),), dtype=np.bool_),
-                                  'game_obs': array_spec.ArraySpec(shape=(10,), dtype=np.int64),
-                                  'hand_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int64),
-                                  'knowledge_obs': array_spec.ArraySpec(shape=(2, 5, 2), dtype=np.int64)}
+                                  'game_obs': array_spec.ArraySpec(shape=(5+n_colors,), dtype=np.int64),
+                                  'hand_obs': array_spec.ArraySpec(shape=(2, n_colors, 2), dtype=np.int64),
+                                  'knowledge_obs': array_spec.ArraySpec(shape=(2, n_colors, 2), dtype=np.int64)}
         self._action_spec = array_spec.BoundedArraySpec(shape=(), dtype=np.int_, minimum=0, maximum=self.num_moves() - 1)
 
     def observation_spec(self):
@@ -359,7 +359,7 @@ class HanabiEnv(py_environment.PyEnvironment):
                                         'game_obs': non_encoded_obs[0],
                                         'hand_obs': non_encoded_obs[1],
                                         'knowledge_obs': non_encoded_obs[2]}
-                
+
         if done:
             return ts.termination(observations_and_legal_moves, reward)
         else:
