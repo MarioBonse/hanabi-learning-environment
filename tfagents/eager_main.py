@@ -214,6 +214,7 @@ def train_eval(
         tf_metrics.HanabiAverageReturnMetric(),
         tf_metrics.AverageEpisodeLengthMetric(),
     ]
+    print('\n\n\n\nCHECK\n\n\n\n')
 
     # checkpointer:
     train_checkpointer = common.Checkpointer(
