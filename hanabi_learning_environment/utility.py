@@ -242,35 +242,34 @@ def format_legal_moves(legal_moves, action_dim):
 
 
 # Only works for Full Hanabi (5 colors, 5 cards in hand)
+# and Small Hanabi (3 colors, 3 cards in hand)
 def transform_obs(obs):
+    n_colors = len(obs["fireworks"].keys)       # It is assumed that this is also equal to the number of cards in hand
     game_obs = [obs["current_player"], obs["life_tokens"], obs["information_tokens"],
                 obs["num_players"], obs["deck_size"], obs["fireworks"]['R'],
-                obs["fireworks"]['Y'], obs["fireworks"]['G'], obs["fireworks"]['W'],
-                obs["fireworks"]['B']]
+                obs["fireworks"]['Y'], obs["fireworks"]['G']]
 
-    color_order = ['R', 'Y', 'G', 'W', 'B']
-    hands_obs = []
-    for hand in obs["observed_hands"]:
-        hand_obs = []
-        for card in hand:
-            color = color_order.index(card['color']) if (card['color'] is not None) else -1
-            rank = card['rank'] if (card['rank'] is not None) else -1
-            hand_obs.append([color, rank])
-        if len(hand_obs) < 5:
-            hand_obs.append([-2, -2])
-        hands_obs.append(hand_obs)
-
+    if n_colors == 5:
+        game_obs += [obs["fireworks"]['W'], obs["fireworks"]['B']]
     
-    knowledge_obs = np.ones(shape=(2,5,2), dtype=np.int64)*(-2)
+    color_order = ['R', 'Y', 'G', 'W', 'B']
+    hands_obs = np.ones(shape=(2,n_colors,2), dtype=np.int64)*(-2)
+    for i, hand in enumerate(obs["observed_hands"]):
+        for j, card in enumerate(hand):
+            hands_obs[i,j,0] = color_order.index(card['color']) if (card['color'] is not None) else -1
+            hands_obs[i,j,1] = card['rank'] if (card['rank'] is not None) else -1
+    
+    
+    knowledge_obs = np.ones(shape=(2,n_colors,2), dtype=np.int64)*(-2)
     for i, player_hints in enumerate(obs["card_knowledge"]):
         for j, hint in enumerate(player_hints):
             knowledge_obs[i,j,0] = color_order.index(hint['color']) if (hint['color'] is not None) else -1
             knowledge_obs[i,j,1] = hint['rank'] if (hint['rank'] is not None) else -1
     
-    assert np.array(knowledge_obs).shape == (2, 5, 2), np.array(knowledge_obs).shape
-    assert np.array(hands_obs).shape == (2, 5, 2), np.array(hands_obs).shape
+    assert knowledge_obs.shape == (2, n_colors, 2), knowledge_obs.shape
+    assert hands_obs.shape == (2, n_colors, 2),hands_obs.shape
     
-    return [np.array(game_obs), np.array(hands_obs), np.array(knowledge_obs)]
+    return [np.array(game_obs), hands_obs, knowledge_obs]
 
 
 def parse_observations(observations, num_actions, obs_stacker):
