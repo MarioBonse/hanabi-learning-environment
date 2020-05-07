@@ -244,7 +244,7 @@ def format_legal_moves(legal_moves, action_dim):
 # Only works for Full Hanabi (5 colors, 5 cards in hand)
 # and Small Hanabi (3 colors, 3 cards in hand)
 def transform_obs(obs):
-    n_colors = len(obs["fireworks"].keys)       # It is assumed that this is also equal to the number of cards in hand
+    n_colors = len(obs["fireworks"].keys())       # It is assumed that this is also equal to the number of cards in hand
     game_obs = [obs["current_player"], obs["life_tokens"], obs["information_tokens"],
                 obs["num_players"], obs["deck_size"], obs["fireworks"]['R'],
                 obs["fireworks"]['Y'], obs["fireworks"]['G']]
