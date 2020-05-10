@@ -345,8 +345,8 @@ def train_eval(
             train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
         
         # Resetting average return and average episode length metrics so that the average only refers to current epoch
-        train_metric[2].reset()
-        train_metric[3].reset()
+        train_metrics[2].reset()
+        train_metrics[3].reset()
         
         train_summary_writer.flush()
 
