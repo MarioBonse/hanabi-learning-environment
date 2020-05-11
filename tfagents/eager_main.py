@@ -211,8 +211,8 @@ def train_eval(
     train_metrics = [
         tf_metrics.NumberOfEpisodes(),
         tf_metrics.EnvironmentSteps(),
-        tf_metrics.HanabiAverageReturnMetric(),
-        tf_metrics.AverageEpisodeLengthMetric(),
+        tf_metrics.HanabiAverageReturnMetric(buffer_size=collect_episodes_per_epoch),
+        tf_metrics.AverageEpisodeLengthMetric(buffer_size=collect_episodes_per_epoch),
     ]
 
     # checkpointer:
