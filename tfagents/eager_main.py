@@ -147,6 +147,8 @@ def train_eval(
     # create the enviroment
     #TODO use ParallelPyEnvironment to run envs in parallel and see how much we can speed up.
     # See: https://www.youtube.com/watch?v=U7g7-Jzj9qo&list=TLPQMDkwNDIwMjB-xXfzXt3B5Q&index=2 at minute 26:50
+    # Note: it is more than possible that batching the environment might require also passing a different batch_size
+    # parameter to the metrics
     env = utility.create_environment()                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = tf_py_environment.TFPyEnvironment(utility.create_environment())
@@ -156,12 +158,12 @@ def train_eval(
     train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
     epoch_counter = tf.Variable(0, trainable=False, name='Epoch', dtype=tf.int64)
     
-    #TODO current implementation of the decaying epsilon essentially requires you to pass the
-    # reset_at_step argument from the command line every time after you pass it the first time
-    # (if you wish for consistent decaying behaviour). Maybe implement some checkpointing of 
-    # something in order to avoid this requirement... The only negative side-effect of not having 
-    # this implementation is that epsilon might become very low all of a sudden if you forget to
-    # pass the reset_at_step argument after you passed it once.
+    #TODO If you want to load back a previous checkpoint, thecurrent implementation of the decaying epsilon 
+    # essentially requires you to pass the same reset_at_step argument from the command line (or gin file) 
+    # every time after you pass it the first time (if you wish for consistent decaying behaviour).
+    # Maybe implement some checkpointing of something in order to avoid this requirement... 
+    # The only negative side-effect of not having this implementation is that epsilon might become very low 
+    # all of a sudden if you forget to pass the reset_at_step argument after you passed it once.
     decaying_epsilon_1 = partial(utility.decaying_epsilon,
                                  initial_epsilon=initial_epsilon,
                                  train_step=epoch_counter,

@@ -58,7 +58,7 @@ class HanabiEnv(py_environment.PyEnvironment):
     ```
     """
 
-    def __init__(self, config, gamma=0.95, history_size=4):
+    def __init__(self, config, gamma=0.95, history_size=4, alternative_reward=False):
         r"""Creates an environment with the given game configuration.
 
         Args:
@@ -75,12 +75,17 @@ class HanabiEnv(py_environment.PyEnvironment):
                         1: First-order common knowledge observation.
                     - seed: int, Random seed.
                     - random_start_player: bool, Random start player.
+            gamma: float in [0,1], discount parameter for past rewards
+            history_size: int, number of past observations to concatenate (1 means only current obs)
+            alternative_reward: bool, flag for alternative reward, 
+                    i.e.  reward at end of game = achieved points - max_points + 1
         """
         super().__init__()
         assert isinstance(config, dict), "Expected config to be of type dict."
         self.game = pyhanabi.HanabiGame(config)
         n_colors = config['colors']        
         self.gamma = gamma
+        self.alternative_reward = alternative_reward
         self.observation_encoder = pyhanabi.ObservationEncoder(
                 self.game, pyhanabi.ObservationEncoderType.CANONICAL)
         self.players = self.game.num_players()
@@ -342,17 +347,30 @@ class HanabiEnv(py_environment.PyEnvironment):
             self.state.deal_random_card()
 
         """
-        FEDE COMMENT
-        Turni dei giocatori come vengono gestiti? ne tiene traccia l'env? come gestire che non sia sempre lo stesso a cominciare? 
-        Nota che per ora quando l'environment crea un oggetto HanabiGame inizializza il first player a caso.
-        Se l'env tiene traccia dei turni dobbiamo passare qualche info al driver oppure non serve? (a naso mi sembra che non serva)
+        Player turns are currently managed by both driver and environment. In the 2 player case the env is keeping track of two 
+        players (PLAYER 0, PLAYER 1) and for the env PLAYER 0 always starts the game. The env will also make sure to feed
+        in order and alternating the observations of PLAYER 0 and PLAYER 1. The driver on the other hand has two policies
+        (and thus two agents) which we can call AGENT 1, AGENT 2. It is important to note that in any given episode AGENT 1 
+        could be assigned to PLAYER 0 or PLAYER 1. This assignment isn't "really" random though; in the first episode run by the
+        driver AGENT 1 will be always assigned to PLAYER 0 whilst in subsequent episodes it will be the AGENT who made the last move
+        in the previous episode to be assigned to PLAYER 0. Since episodes vary in length this "kinda" insures that not always the same
+        player will start the game... It is perhaps a not so nice way to do it though. Also note that the assignment AGENT i - PLAYER j 
+        happens implicitly, the driver isn't aware of the existence of PLAYER 0,1 and the env isn't aware of the existence of AGENT 0,1.
         """
 
         obs = self._make_observation_all_players()
         current_player, legal_moves, current_agent_obs, non_encoded_obs = parse_observations(obs, self.num_moves(), self.obs_stacker)
         done = self.state.is_terminal()
-        # Reward is score differential. May be large and negative at game end.
-        reward = self.state.score() - last_score
+        
+        # Note that DeepMind implementation of the reward (alternative_reward=False) has self.state.score() = 0 at the end of a 
+        # "failed" game. This means that if you reach 24/25 points at the last time-step you get -24 points. However for some wierd reason
+        # if instead you fail the game by deck exhaustion (instead of life tokens = 0) then self.state.score() = fireworks placed. Therefore
+        # the last reward in this case would be 0 (if you exhausted deck with discard/wrong play) or 1 (if you exhausted deck with a correct play).
+        if self.alternative_reward and done:
+            reward = self.state.score() - self.game.num_colors()*self.game.num_ranks() + 1
+        else:
+            # Reward is score differential. May be large and negative at game end.
+            reward = self.state.score() - last_score
 
         observations_and_legal_moves = {'observations': current_agent_obs,
                                         'legal_moves': np.logical_not(legal_moves),
