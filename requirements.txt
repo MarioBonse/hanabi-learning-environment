@@ -36,7 +36,7 @@ six==1.14.0
 tb-nightly==2.2.0a20200306
 # tensorboard==2.1.1
 tensorboard-plugin-wit==1.6.0.post2
-tensorflow-estimator==2.1.0
+# tensorflow-estimator==2.1.0
 termcolor==1.1.0
 tf-estimator-nightly==2.1.0.dev2020030601
 tf-nightly==2.2.0.dev20200306
