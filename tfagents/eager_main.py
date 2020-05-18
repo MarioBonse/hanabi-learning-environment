@@ -32,8 +32,6 @@ from hanabi_learning_environment import utility
 import gin
 from six.moves import range
 import tensorflow as tf
-gpus = tf.config.experimental.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpus[0], True)
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_episode_driver
 from tf_agents.environments import tf_py_environment
@@ -44,6 +42,9 @@ from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.utils import common
 from tf_agents.policies import py_tf_policy
 from functools import partial
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 """
@@ -82,6 +83,7 @@ flags.DEFINE_multi_string('gin_bindings', [],
 
 FLAGS = flags.FLAGS
 
+
 #TODO Very much unfinished function. it should run an episode stopping step by step
 # and printing everything we might want to see.
 def run_verbose_mode(agent_1, agent_2):
@@ -89,7 +91,6 @@ def run_verbose_mode(agent_1, agent_2):
     tf_env = tf_py_environment.TFPyEnvironment(env)
     
     state = tf.env.reset()
-
 
 
 @gin.configurable
@@ -133,10 +134,6 @@ def train_eval(
     eval_summary_writer = tf.summary.create_file_writer(
         eval_dir, flush_millis=summaries_flush_secs * 1000)
 
-    eval_metrics = [
-        tf_metrics.AverageReturnMetric(buffer_size=num_eval_episodes),
-        tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
-    ]
     
     # Profiler is used to trace computational resource utilization if required from tensorboard
     # Note: "To profile multiple GPUs, install CUDA® Toolkit 10.2 or later. CUDA® Toolkit 10.1 supports only
@@ -215,6 +212,11 @@ def train_eval(
         tf_metrics.EnvironmentSteps(),
         tf_metrics.HanabiAverageReturnMetric(buffer_size=collect_episodes_per_epoch),
         tf_metrics.AverageEpisodeLengthMetric(buffer_size=collect_episodes_per_epoch),
+    ]
+    
+    eval_metrics = [
+        tf_metrics.HanabiAverageReturnMetric(buffer_size=num_eval_episodes),
+        tf_metrics.AverageEpisodeLengthMetric(buffer_size=num_eval_episodes),
     ]
 
     # checkpointer:
@@ -369,16 +371,13 @@ def train_eval(
             #FIXME For some unknown reason eval_summary_writer is actually not writing anything
             # Is it because there is some problem and it's being written to train_summary_writer or
             # is it not being called?? Someone investigate this.
-            with eval_summary_writer.as_default(): 
-                metric_utils.compute_summaries(eval_metrics, 
-                                               eval_py_env,
-                                               [eval_py_policy_1, eval_py_policy_2],
-                                               num_episodes=num_eval_episodes,
-                                               global_step=epoch_counter,
-                                               tf_summaries=False,
-                                               log = True
-                                               )
-                eval_summary_writer.flush()
+            metric_utils.eager_compute(eval_metrics,
+                                       eval_py_env,
+                                       [eval_py_policy_1, eval_py_policy_2],
+                                       num_episodes=num_eval_episodes,
+                                       train_step=epoch_counter,
+                                       summary_writer=eval_summary_writer)
+            eval_summary_writer.flush()
 
 
 
