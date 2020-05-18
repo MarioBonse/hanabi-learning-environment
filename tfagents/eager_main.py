@@ -376,7 +376,8 @@ def train_eval(
                                        [eval_py_policy_1, eval_py_policy_2],
                                        num_episodes=num_eval_episodes,
                                        train_step=epoch_counter,
-                                       summary_writer=eval_summary_writer)
+                                       summary_writer=eval_summary_writer,
+                                       summary_prefix='Metrics')
             eval_summary_writer.flush()
 
 
