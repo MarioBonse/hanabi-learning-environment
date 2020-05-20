@@ -26,15 +26,15 @@ train_eval.reset_at_step = None         # can be None
 train_eval.num_iterations = 144000
 train_eval.collect_episodes_per_epoch = 5
 train_eval.train_steps_per_epoch = 100
-train_eval.num_eval_episodes = 100
+train_eval.num_eval_episodes = 1000
 train_eval.batch_size = 64
 
 
 # Checkpointing and Evaluation
-train_eval.train_checkpoint_interval = 24000
-train_eval.policy_checkpoint_interval = 24000
-train_eval.rb_checkpoint_interval = 24000
-train_eval.eval_interval = 144000
+train_eval.train_checkpoint_interval = 14400
+train_eval.policy_checkpoint_interval = 14400
+train_eval.rb_checkpoint_interval = 14400
+train_eval.eval_interval = 7700
 
 
 # Environment

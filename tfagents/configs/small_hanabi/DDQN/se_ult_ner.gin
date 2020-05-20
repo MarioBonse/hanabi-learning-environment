@@ -34,7 +34,7 @@ train_eval.batch_size = 64
 train_eval.train_checkpoint_interval = 6000
 train_eval.policy_checkpoint_interval = 6000
 train_eval.rb_checkpoint_interval = 6000
-train_eval.eval_interval = 72000
+train_eval.eval_interval = 3600
 
 
 # Environment
