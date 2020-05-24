@@ -349,6 +349,9 @@ def train_eval(
             train_metric.tf_summaries(train_step=epoch_counter, step_metrics=train_metrics[:2])
         
         # Resetting average return and average episode length metrics so that the average only refers to current epoch
+        # This is actually probably redundant because they have a buffer_size which only allows them to keep track of 
+        # exactly the number of episodes that are run each epoch so even without getting resetted they probably would
+        # overwrite old values. Since resetting doesn't really take time and is clearer, we keep it.
         train_metrics[2].reset()
         train_metrics[3].reset()
         
@@ -368,9 +371,6 @@ def train_eval(
         if epoch_counter.numpy() % eval_interval == 0:
             eval_py_policy_1 = tf_agent_1.policy
             eval_py_policy_2 = tf_agent_2.policy
-            #FIXME For some unknown reason eval_summary_writer is actually not writing anything
-            # Is it because there is some problem and it's being written to train_summary_writer or
-            # is it not being called?? Someone investigate this.
             metric_utils.eager_compute(eval_metrics,
                                        eval_py_env,
                                        [eval_py_policy_1, eval_py_policy_2],
