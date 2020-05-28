@@ -284,7 +284,7 @@ def train_eval(
         # we need to keep track of what's happening at every single step with no exception. I thus suggest maybe logging the metrics every 
         # couple of episodes instead of every episode so that we can gain (maybe, needs to be tested) some performance improvement without 
         # loosing too much info on what's happening.
-        collect_op = dynamic_episode_driver.DynamicEpisodeDriver(
+        dynamic_episode_driver.DynamicEpisodeDriver(
             tf_env,
             [collect_policy_1, collect_policy_2],
             observers=replay_observer + train_metrics,
@@ -306,9 +306,10 @@ def train_eval(
             num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         
         print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
-
-        losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
-        losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
+        # Commenting out losses_1/_2 (and all their relevant code) to try and see if they are responsible for an observed memory leak. 
+        # No feedback available yet on whether this is the case or not
+        # losses_1 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
+        # losses_2 = tf.TensorArray(tf.float32, size=train_steps_per_epoch)
         c = 0
         start_time  = time.time()
         for data in dataset:
@@ -332,15 +333,18 @@ def train_eval(
             # so that we don't have the first "pythonic" run of them or if for some reason we change the file_writer
             # during execution. Should the summary writer be passed to the agent training function so that it can be set 
             # as default from inside the boundary of tf.function? How does tf-agent solve this issue?
-            losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
-            losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)                
+
+            # losses_1 = losses_1.write(c, agent_1_train_function(experience=experience).loss)
+            # losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
+            agent_1_train_function(experience=experience)
+            agent_2_train_function(experience=experience)
             c += 1
 
-        losses_1 = losses_1.stack()
-        losses_2 = losses_2.stack()
+        # losses_1 = losses_1.stack()
+        # losses_2 = losses_2.stack()
         print("Ended epoch training of both Agents, it took {}".format(time.time() - start_time))
-        print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
-        print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
+        # print('Mean loss for Agent 1 is: {}'.format(tf.math.reduce_mean(losses_1)))
+        # print('Mean loss for Agent 2 is: {}\n\n'.format(tf.math.reduce_mean(losses_2)))
         
         
         epoch_counter.assign_add(1)
@@ -379,6 +383,12 @@ def train_eval(
                                        summary_writer=eval_summary_writer,
                                        summary_prefix='Metrics')
             eval_summary_writer.flush()
+            # Resetting average return and average episode length metrics so that the average only refers to current epoch
+            # This is actually probably redundant because they have a buffer_size which only allows them to keep track of 
+            # exactly the number of episodes that are run each epoch so even without getting resetted they probably would
+            # overwrite old values. Since resetting doesn't really take time and is clearer, we keep it.
+            eval_metrics[0].reset()
+            eval_metrics[1].reset()
 
 
 
