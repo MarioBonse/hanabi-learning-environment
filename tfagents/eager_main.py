@@ -152,6 +152,9 @@ def train_eval(
     # by batch_size and use that as max_length parameter. Btw, a frame stored by the RB can be variable; if num_steps=2 (as right now)
     # then a frame is  [time_step, action, next_time_step] (where time_step has all info including last reward). If you increase num_steps
     # then it's obvious how a frame would change, and also how this affects the *actual* number of transitions that the RB is storing.
+    # Also note that if I ever actually manage to do the Prioritized RB, it won't support this batch parallelization. The issue lies with
+    # the SumTree object (which I imported from the DeepMind framework) and the fact that it doesn't seem to me like this object could be 
+    # parallelized (meaning that all memory access issues are solved) in any way...
     env = utility.create_environment()                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = tf_py_environment.TFPyEnvironment(utility.create_environment())
