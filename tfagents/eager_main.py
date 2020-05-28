@@ -144,8 +144,14 @@ def train_eval(
     # create the enviroment
     #TODO use ParallelPyEnvironment to run envs in parallel and see how much we can speed up.
     # See: https://www.youtube.com/watch?v=U7g7-Jzj9qo&list=TLPQMDkwNDIwMjB-xXfzXt3B5Q&index=2 at minute 26:50
-    # Note: it is more than possible that batching the environment might require also passing a different batch_size
-    # parameter to the metrics
+    # Note: it is more than likely that batching the environment might require also passing a different batch_size
+    # parameter to the metrics and the replay buffer. Also note that the replay buffer actually stores batch_size*max_length
+    # frames, so for example right now to have a RB with 50k capacity you would have batch_size=1, max_length=50k. This is probaably
+    # done for parallelization and memory access issues, where one wants to be sure that the parallel runs don't access the same memory
+    # slots of the RB... As such if you want to run envs in parallel and keep RB capacity fixed you should divide the desired capacity
+    # by batch_size and use that as max_length parameter. Btw, a frame stored by the RB can be variable; if num_steps=2 (as right now)
+    # then a frame is  [time_step, action, next_time_step] (where time_step has all info including last reward). If you increase num_steps
+    # then it's obvious how a frame would change, and also how this affects the *actual* number of transitions that the RB is storing.
     env = utility.create_environment()                        
     tf_env = tf_py_environment.TFPyEnvironment(env)
     eval_py_env = tf_py_environment.TFPyEnvironment(utility.create_environment())
