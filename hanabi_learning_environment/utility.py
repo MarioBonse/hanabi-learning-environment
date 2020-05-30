@@ -244,31 +244,35 @@ def format_legal_moves(legal_moves, action_dim):
 # Only works for Full Hanabi (5 colors, 5 cards in hand)
 # and Small Hanabi (3 colors, 3 cards in hand)
 def transform_obs(obs):
-    n_colors = len(obs["fireworks"].keys())       # It is assumed that this is also equal to the number of cards in hand
+    # It is assumed that this is also equal to the number of cards in hand
+    n_colors = len(obs["fireworks"].keys())
     game_obs = [obs["current_player"], obs["life_tokens"], obs["information_tokens"],
                 obs["num_players"], obs["deck_size"], obs["fireworks"]['R'],
                 obs["fireworks"]['Y'], obs["fireworks"]['G']]
 
     if n_colors == 5:
         game_obs += [obs["fireworks"]['W'], obs["fireworks"]['B']]
-    
+
     color_order = ['R', 'Y', 'G', 'W', 'B']
-    hands_obs = np.ones(shape=(2,n_colors,2), dtype=np.int64)*(-2)
+    hands_obs = np.ones(shape=(2, n_colors, 2), dtype=np.int64)*(-2)
     for i, hand in enumerate(obs["observed_hands"]):
         for j, card in enumerate(hand):
-            hands_obs[i,j,0] = color_order.index(card['color']) if (card['color'] is not None) else -1
-            hands_obs[i,j,1] = card['rank'] if (card['rank'] is not None) else -1
-    
-    
-    knowledge_obs = np.ones(shape=(2,n_colors,2), dtype=np.int64)*(-2)
+            hands_obs[i, j, 0] = color_order.index(
+                card['color']) if (card['color'] is not None) else -1
+            hands_obs[i, j, 1] = card['rank'] if (
+                card['rank'] is not None) else -1
+
+    knowledge_obs = np.ones(shape=(2, n_colors, 2), dtype=np.int64)*(-2)
     for i, player_hints in enumerate(obs["card_knowledge"]):
         for j, hint in enumerate(player_hints):
-            knowledge_obs[i,j,0] = color_order.index(hint['color']) if (hint['color'] is not None) else -1
-            knowledge_obs[i,j,1] = hint['rank'] if (hint['rank'] is not None) else -1
-    
+            knowledge_obs[i, j, 0] = color_order.index(
+                hint['color']) if (hint['color'] is not None) else -1
+            knowledge_obs[i, j, 1] = hint['rank'] if (
+                hint['rank'] is not None) else -1
+
     assert knowledge_obs.shape == (2, n_colors, 2), knowledge_obs.shape
-    assert hands_obs.shape == (2, n_colors, 2),hands_obs.shape
-    
+    assert hands_obs.shape == (2, n_colors, 2), hands_obs.shape
+
     return [np.array(game_obs), hands_obs, knowledge_obs]
 
 
@@ -326,3 +330,35 @@ def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='expone
 
 def observation_and_action_constraint_splitter(obs):
     return obs['observations'], obs['legal_moves']
+
+
+def print_readable_timestep(time_step, environment):
+	color_decoder = {-2:'Card Missing',- 1:'X', 0:'R', 1:'Y', 2:'G', 3:'W', 4:'B'}
+	rank_decoder = {-2:'Card Missing',- 1:'X', 0:'1', 1:'2', 2:'3', 3:'4', 4:'5'}
+	game_obs = time_step.observation["game_obs"][0]
+	print('Last reward:', time_step.reward.numpy())
+	print('Current Player:', game_obs[0].numpy())
+	print('Life Tokens:', game_obs[1].numpy())
+	print('Information Tokens:', game_obs[2].numpy())
+	print('Remaining Deck:', game_obs[4].numpy())
+	print("Fireworks:\nR {}   Y{}   G{}   W{}   B{}".format(game_obs[5], game_obs[6], game_obs[7], game_obs[8], game_obs[9]))
+	
+	hand_obs = time_step.observation['hand_obs'][0].numpy()
+	print("\nPlayer 0 Hand:")
+	print("{}{}   {}{}   {}{}   {}{}   {}{}".format(color_decoder[hand_obs[0][0, 0]], rank_decoder[hand_obs[0][0, 1]],
+													color_decoder[hand_obs[0][1, 0]], rank_decoder[hand_obs[0][1, 1]],
+													color_decoder[hand_obs[0][2, 0]], rank_decoder[hand_obs[0][2, 1]],
+													color_decoder[hand_obs[0][3, 0]], rank_decoder[hand_obs[0][3, 1]],
+													color_decoder[hand_obs[0][4, 0]], rank_decoder[hand_obs[0][4, 1]]))
+	
+	print("\nPlayer 1 Hand:")
+	print("{}{}   {}{}   {}{}   {}{}   {}{}".format(color_decoder[hand_obs[1][0, 0]], rank_decoder[hand_obs[1][0, 1]],
+													color_decoder[hand_obs[1][1, 0]], rank_decoder[hand_obs[1][1, 1]],
+													color_decoder[hand_obs[1][2, 0]], rank_decoder[hand_obs[1][2, 1]],
+													color_decoder[hand_obs[1][3, 0]], rank_decoder[hand_obs[1][3, 1]],
+													color_decoder[hand_obs[1][4, 0]], rank_decoder[hand_obs[1][4, 1]]))
+	
+	print("\nLegal moves and their respective index:")
+	for i in range(environment.num_moves()):
+		if time_step.observation["legal_moves"].numpy()[0][i]:
+			print(environment.game.get_move(i), ' - ', i)
