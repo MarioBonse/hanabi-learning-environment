@@ -222,6 +222,9 @@ def train_eval(
         tf_metrics.HanabiAverageReturnMetric(buffer_size=collect_episodes_per_epoch),
         tf_metrics.AverageEpisodeLengthMetric(buffer_size=collect_episodes_per_epoch),
     ]
+
+    # replay buffer update for the driver
+    replay_observer = [replay_buffer.add_batch]
     
     eval_metrics = [
         tf_metrics.HanabiAverageReturnMetric(buffer_size=num_eval_episodes),
@@ -269,8 +272,6 @@ def train_eval(
     agent_1_train_function = common.function(tf_agent_1.train)
     agent_2_train_function = common.function(tf_agent_2.train)
     
-    # replay buffer update for the driver
-    replay_observer = [replay_buffer.add_batch]
     
     # Supposedly this is a performance improvement. According to TF devs it achieves
     # better performance by compiling stuff specialized on shape. If the shape of the stuff
@@ -323,8 +324,8 @@ def train_eval(
         start_time  = time.time()
         for data in dataset:
             if c % (train_steps_per_epoch/10) == 0 and c != 0:
-                tf.summary.scalar("loss_agent_1", tf.math.reduce_mean(losses_1.stack()), step=train_step_1)
-                tf.summary.scalar("loss_agent_2",  tf.math.reduce_mean(losses_1.stack()), step=train_step_2)
+                #tf.summary.scalar("loss_agent_1", tf.math.reduce_mean(losses_1.stack()), step=train_step_1)
+                #tf.summary.scalar("loss_agent_2",  tf.math.reduce_mean(losses_1.stack()), step=train_step_2)
                 print("{}% completed with {} steps done".format(int(c/train_steps_per_epoch*100), c))
             if c == train_steps_per_epoch:
                 break
