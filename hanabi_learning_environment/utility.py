@@ -359,6 +359,6 @@ def print_readable_timestep(time_step, environment):
 													color_decoder[hand_obs[1][4, 0]], rank_decoder[hand_obs[1][4, 1]]))
 	
 	print("\nLegal moves and their respective index:")
-	for i in range(environment.num_moves()):
+	for i in range(environment._env.num_moves()):
 		if time_step.observation["legal_moves"].numpy()[0][i]:
-			print(environment.game.get_move(i), ' - ', i)
+			print(environment._env.game.get_move(i), ' - ', i)
