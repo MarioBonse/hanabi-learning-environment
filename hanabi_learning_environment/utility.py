@@ -125,7 +125,7 @@ def create_environment(game_type='Hanabi-Full', num_players=2):
 		environment_name=game_type, num_players=num_players, pyhanabi_path=None)
 
 
-@gin.configurable
+@gin.configurable(blacklist=['environment'])
 def create_obs_stacker(environment, history_size=4):
 	"""Creates an observation stacker.
 
@@ -142,7 +142,7 @@ def create_obs_stacker(environment, history_size=4):
 							  environment.players)
 
 
-@gin.configurable
+@gin.configurable(blacklist=['environment', 'train_step_counter'])
 def create_agent(agent_class,
 				 environment,
 				 learning_rate,
@@ -221,8 +221,8 @@ def create_agent(agent_class,
 			'Expected valid agent_type, got {}'.format(agent_class))
 
 
-@gin.configurable
-def create_replay_buffer(rb_type='uniform', data_spec=None, batch_size=1, max_length=50000):
+@gin.configurable(blacklist=['data_spec', 'batch_size'])
+def create_replay_buffer(rb_type, data_spec, batch_size, max_length):
 	if rb_type == 'uniform':
 		update_priority_flag = False
 		return (tf_uniform_replay_buffer.TFUniformReplayBuffer(data_spec=data_spec,
@@ -329,7 +329,7 @@ def parse_observations(observations, num_actions, obs_stacker):
 
 # TODO Implementing an automatic reset of the decaying epsilon parameter? Something maybe that looks at the variance
 # of some performance metric(s) and decides based on that if it should reset the decay of epsilon or not
-@gin.configurable
+@gin.configurable(blacklist=['train_step'])
 def decaying_epsilon(initial_epsilon, train_step, decay_time, decay_type='exponential', reset_at_step=None):
 	if reset_at_step:
 		# The reason why these two ifs are separated and not grouped in an *and* expression (using python short-circuit)
@@ -384,7 +384,4 @@ def print_readable_timestep(time_step, environment):
 		if time_step.observation["legal_moves"].numpy()[0][i]:
 			print(environment._env.game.get_move(i), ' - ', i)
 
-
-def update_priorities(data_info, td_errors_agent_1, tf_errors_agent_2):
-	pass
 
