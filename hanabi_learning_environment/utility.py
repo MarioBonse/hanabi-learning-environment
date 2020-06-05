@@ -224,17 +224,17 @@ def create_agent(agent_class,
 @gin.configurable(blacklist=['data_spec', 'batch_size'])
 def create_replay_buffer(rb_type, data_spec, batch_size, max_length):
 	if rb_type == 'uniform':
-		update_priority_flag = False
+		prb_flag = False
 		return (tf_uniform_replay_buffer.TFUniformReplayBuffer(data_spec=data_spec,
 															  batch_size=batch_size,
 															  max_length=max_length), 
-				update_priority_flag)
+				prb_flag)
 	elif rb_type == 'prioritized':
-		update_priority_flag = True
+		prb_flag = True
 		return (tf_prioritized_replay_buffer.TFPrioritizedReplayBuffer(data_spec=data_spec,
 																	  batch_size=batch_size,
 																	  max_length=max_length),
-				update_priority_flag)
+				prb_flag)
 
 
 def format_legal_moves(legal_moves, action_dim):

@@ -206,7 +206,7 @@ def train_eval(
 									  decaying_epsilon=decaying_epsilon_2,
 									  train_step_counter=train_step_2)
 	# replay buffer
-	replay_buffer, update_priority_flag = utility.create_replay_buffer(
+	replay_buffer, prb_flag = utility.create_replay_buffer(
 		data_spec=tf_agent_1.collect_data_spec,
 		batch_size=tf_env.batch_size)
 
@@ -323,10 +323,18 @@ def train_eval(
 			how much better a model got after an epoch... Essentially one should check that the agent manages to reach the same level of performance
 			(measured perhaps in average_return_per_episode == number of fireworks placed) at the same epoch (more or less) even if you do this thing
 			of doubling batch_size and halving train_steps_per_epoch.
+		FIXME Currently the num_parallel_calls passed changes depending on whether the replay buffer is uniform or prioritized. This is because passing
+			a value higher than 1 with the Prioritized Replay Buffer will make the code crash(without ever ending execution, outputting no errors, and 
+			not stucked in any loop (I have never witnessed this type of crash and it's extremely hard to investigate). My best guess to why this happens
+			is because multiple parallel executions of the _get_next() method end up calling the same SumTree object (which isn't expressed in tensors) 
+			probably creating some problems there. If one was masochistic enough to try and fix this I would suggest to start by writing the SumTree object
+			from scratch in TF 2.x compliant code; it might also be necessary to remove the tf.py_function wrappers that I created in the Prioritized Replay
+			Buffer code (which force TF to execute the functions eagerly as python functions). Note that the value "3" used in the case of a Uniform Replay Buffer
+			is completely arbitrary.
 		"""
 		# Dataset generates trajectories with shape [Bx2x...]
 		dataset = replay_buffer.as_dataset(
-			num_parallel_calls=3,
+			num_parallel_calls=1 if prb_flag else 3,
 			sample_batch_size=batch_size,
 			num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 		
@@ -365,7 +373,7 @@ def train_eval(
 			# losses_2 = losses_2.write(c, agent_2_train_function(experience=experience).loss)
 			loss_agent_1_info = agent_1_train_function(experience=experience)
 			loss_agent_2_info = agent_2_train_function(experience=experience)
-			if update_priority_flag:
+			if prb_flag:
 				td_error_1 = tf.math.abs(loss_agent_1_info.extra.td_error)
 				td_error_2 = tf.math.abs(loss_agent_2_info.extra.td_error)
 				priorities = tf.math.reduce_mean([td_error_1, td_error_2], axis=0)
