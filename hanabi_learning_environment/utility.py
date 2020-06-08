@@ -30,6 +30,8 @@ from __future__ import print_function
 import gin.tf
 from hanabi_learning_environment import rl_env
 from tf_agents.agents.dqn import dqn_agent
+from tf_agents.agents.categorical_dqn import categorical_dqn_agent
+from tf_agents.networks import categorical_q_network
 from tf_agents.networks import q_network
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
 from tf_agents.replay_buffers import tf_prioritized_replay_buffer
@@ -145,11 +147,15 @@ def create_obs_stacker(environment, history_size=4):
 @gin.configurable(blacklist=['environment', 'train_step_counter'])
 def create_agent(agent_class,
 				 environment,
+				 fc_layer_params,
 				 learning_rate,
 				 decaying_epsilon,
 				 target_update_tau,
 				 target_update_period,
 				 gamma,
+				 num_atoms,			# Only for categorical_dqn
+				 min_q_value,		# Only for categorical_dqn
+				 max_q_value,		# Only for categorical_dqn
 				 reward_scale_factor,
 				 gradient_clipping,
 				 debug_summaries,
@@ -182,9 +188,10 @@ def create_agent(agent_class,
 		return dqn_agent.DqnAgent(
 			environment.time_step_spec(),
 			environment.action_spec(),
-			q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
-										 environment.action_spec()
-										 ),
+			q_network=q_network.QNetwork(
+				environment.time_step_spec().observation['observations'],
+				environment.action_spec(),
+				fc_layer_params=fc_layer_params),
 			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
 			epsilon_greedy=decaying_epsilon,
@@ -201,14 +208,38 @@ def create_agent(agent_class,
 		return dqn_agent.DdqnAgent(
 			environment.time_step_spec(),
 			environment.action_spec(),
-			q_network=q_network.QNetwork(environment.time_step_spec().observation['observations'],
-										 environment.action_spec(),
-										 ),
+			q_network=q_network.QNetwork(
+				environment.time_step_spec().observation['observations'],
+				environment.action_spec(),
+				fc_layer_params=fc_layer_params),
 			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
 			epsilon_greedy=decaying_epsilon,
 			target_update_tau=target_update_tau,
 			target_update_period=target_update_period,
+			td_errors_loss_fn=common.element_wise_squared_loss,
+			gamma=gamma,
+			reward_scale_factor=reward_scale_factor,
+			gradient_clipping=gradient_clipping,
+			debug_summaries=debug_summaries,
+			summarize_grads_and_vars=summarize_grads_and_vars,
+			train_step_counter=train_step_counter)
+	elif agent_class == 'categorical_dqn':
+		return categorical_dqn_agent.CategoricalDqnAgent(
+			environment.time_step_spec(),
+			environment.action_spec(),
+			categorical_q_network=categorical_q_network.CategoricalQNetwork(
+				environment.observation_spec(),
+				environment.action_spec(),
+				num_atoms=num_atoms,
+				fc_layer_params=fc_layer_params),
+			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
+			epsilon_greedy=decaying_epsilon,
+			target_update_tau=target_update_tau,
+			target_update_period=target_update_period,
+			min_q_value=min_q_value,
+			max_q_value=max_q_value,
 			td_errors_loss_fn=common.element_wise_squared_loss,
 			gamma=gamma,
 			reward_scale_factor=reward_scale_factor,

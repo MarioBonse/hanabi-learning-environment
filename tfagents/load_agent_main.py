@@ -47,30 +47,6 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
-"""
-Nota sul training:
-Parlando con Sascha ho scoperto che l'implementazione di DeepMind di fatto sta eseguendo training
-anche all'interno di un episodio "trained on a batch of 32 transitions in intervals of 4 environment steps"
-(tenendo traccia all'inizio del fatto che non ci sono 32 transizioni nel RB quindi fai andare un po' di più).
-Io sarei per passare ad un approccio più così (magari facendo tuning di batch size ed env steps) soprattutto per
-via del Prioritized RB. E' inutile trasformare il RB in un dataset su cui poi iteri se di fatto a ogni iterazione
-traini e sulla base della loss cambi la priorità con cui il RB dovrebbe samplare... Su questo però faccio due 
-ulteriori considerazioni rispettivamente contro e a favore del cambiamento:
-	1) Il nostro RB quando diventa dataset in realtà crea un dataset infinito contenente i numeri [0, +inf]
-		e mappa ogni numero che contiene col metodo self.get_next() (di fatto cestinando l'inutile numero che
-		passa come parametro). Per via di questo forse possiamo tenere il codice così com'è perchè forse/probabilmente
-		(va verificato però fino a che punto) se updatiamo le priority sul RB mentre stiamo iterando sul dataset
-		la cosa non diventa problematica perchè a ogni iterazione viene chiamata self.get_next() che esegue con le nuove 
-		(e corrette) priority. 
-		N.B.
-		probabilmente il metodo prefetch() applicato al dataset gioca un ruolo perchè le cose già fetchate a occhio non aggiornano
-		la priorità, ma di queste sottigliezze forse possiamo fregarcene e contare che non cambino molto
-	2) Implementare il cambiamento non sarebbe particolarmente fastidioso per il driver visto che potremmo usare il
-		DynamicStepDriver che come output ti dà lo stato delle cose all'ultimo step che poi puoi passare al
-		DynamicStepDriver stesso alla prossima iterazione perchè riprenda da lì (e questo dovrebbe mantenere consistency
-		per quanto riguarda metriche importanti come AverageReturn)
-"""
-
 
 flags.DEFINE_string('root_dir', os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
 					'Root directory for writing logs/summaries/checkpoints.')
@@ -82,15 +58,6 @@ flags.DEFINE_multi_string('gin_bindings', [],
 						  '(e.g. "train_eval.num_iterations=100").')
 
 FLAGS = flags.FLAGS
-
-
-#TODO Very much unfinished function. it should run an episode stopping step by step
-# and printing everything we might want to see.
-def run_verbose_mode(agent_1, agent_2):
-	env = rl_env.make('Hanabi-Full-CardKnowledge', num_players=2)
-	tf_env = tf_py_environment.TFPyEnvironment(env)
-	
-	state = tf.env.reset()
 
 
 @gin.configurable
@@ -121,12 +88,7 @@ def train_eval(
 	train_dir = os.path.join(root_dir, 'train')
 	eval_dir = os.path.join(root_dir, 'eval')
 
-	"""
-	FIXME Checkpointing doesn't synergize with tensorboard summaries, i.e. if you checkpoint
-		at some point, execute some epochs (which are not checkpointed), stop the program and run again 
-		from the last saved checkpoint; then tensorboard  will receive (and display) twice the summaries 
-		relative to the epochs that had been executed, but not checkpointed. How to solve this? No idea. 
-	"""
+
 	train_summary_writer = tf.summary.create_file_writer(
 		train_dir, flush_millis=summaries_flush_secs * 1000)
 
@@ -142,21 +104,6 @@ def train_eval(
 	tf.profiler.experimental.server.start(6009)
 
 
-	"""
-	TODO use ParallelPyEnvironment to run envs in parallel and see how much we can speed up.
-		See: https://www.youtube.com/watch?v=U7g7-Jzj9qo&list=TLPQMDkwNDIwMjB-xXfzXt3B5Q&index=2 at minute 26:50
-		Note: it is more than likely that batching the environment might require also passing a different batch_size
-		parameter to the metrics and the replay buffer. Also note that the replay buffer actually stores batch_size*max_length
-		frames, so for example right now to have a RB with 50k capacity you would have batch_size=1, max_length=50k. This is probaably
-		done for parallelization and memory access issues, where one wants to be sure that the parallel runs don't access the same memory
-		slots of the RB... As such if you want to run envs in parallel and keep RB capacity fixed you should divide the desired capacity
-		by batch_size and use that as max_length parameter. Btw, a frame stored by the RB can be variable; if num_steps=2 (as right now)
-		then a frame is  [time_step, action, next_time_step] (where time_step has all info including last reward). If you increase num_steps
-		then it's obvious how a frame would change, and also how this affects the *actual* number of transitions that the RB is storing.
-		Also note that if I ever actually manage to do the Prioritized RB, it won't support this batch parallelization. The issue lies with
-		the SumTree object (which I imported from the DeepMind framework) and the fact that it doesn't seem to me like this object could be 
-		parallelized (meaning that all memory access issues are solved) in any way...
-	"""
 	# create the enviroment
 	env = utility.create_environment()                        
 	tf_env = tf_py_environment.TFPyEnvironment(env)
@@ -166,14 +113,7 @@ def train_eval(
 	train_step_1 = tf.Variable(0, trainable=False, name='global_step_1', dtype=tf.int64)
 	train_step_2 = tf.Variable(0, trainable=False, name='global_step_2', dtype=tf.int64)
 	epoch_counter = tf.Variable(0, trainable=False, name='Epoch', dtype=tf.int64)
-	"""
-	TODO If you want to load back a previous checkpoint, thecurrent implementation of the decaying epsilon 
-		essentially requires you to pass the same reset_at_step argument from the command line (or gin file) 
-		every time after you pass it the first time (if you wish for consistent decaying behaviour).
-		Maybe implement some checkpointing of something in order to avoid this requirement... 
-		The only negative side-effect of not having this implementation is that epsilon might become very low 
-		all of a sudden if you forget to pass the reset_at_step argument after you passed it once.
-	"""
+
 	# Epsilon implementing decaying behaviour for the two agents
 	decaying_epsilon_1 = partial(utility.decaying_epsilon,
 								 initial_epsilon=initial_epsilon,
@@ -188,15 +128,7 @@ def train_eval(
 								 decay_time=decay_time,
 								 reset_at_step=reset_at_step)
 	
-	"""
-	TODO Performance Improvement: "When training on GPUs, make use of the TensorCore. GPU kernels use
-		the TensorCore when the precision is fp16 and input/output dimensions are divisible by 8 or 16 (for int8)"
-		(from https://www.tensorflow.org/guide/profiler#improve_device_performance). Maybe consider decreasing
-		precision to fp16 and possibly compensating with increased model complexity to not lose performance?
-		I mean if this allows us to use TensorCore then maybe it is worthwhile (computationally) to increase 
-		model size and lower precision. Need to test what the impact on agent performance is.
-		See https://www.tensorflow.org/guide/keras/mixed_precision for more info
-	"""
+
 	# create an agent and a network 
 	tf_agent_1 = utility.create_agent(environment=tf_env,
 									  decaying_epsilon=decaying_epsilon_1,
@@ -211,17 +143,7 @@ def train_eval(
 		batch_size=tf_env.batch_size)
 
 	
-	"""
-	#FIXME we haven't really looked at how train_metrics are managed in the driver when it's running
-		in particular it is unclear whether any issues come up because of the fact that now the driver
-		is running two different policies (agents). In other words, we only modified the DynamicEpicodeDriver
-		with what was stricly necessary to make it run with two different agents. We never checked what the 
-		implications of this would be for logging, summaries and metrics. It seems reasonable though that all these
-		metrics effectively depend only on the environment and so are unaffected by what happens to the agent(s). 
-		We thus do not expect any surprises here, but for example the metric AverageReturnMetric will most likely
-		be considering the rewards of the two agents together; this is actually desired (for now), as it tells us 
-		how many cards they managed to put down together
-	"""
+
 	# metrics
 	train_metrics = [
 		tf_metrics.NumberOfEpisodes(),
@@ -259,25 +181,14 @@ def train_eval(
 		replay_buffer=replay_buffer)
 
 	
-	
-	"""
-	FIXME Tensorflow documentation of tf.function (https://www.tensorflow.org/api_docs/python/tf/function)
-		states that autograph parameter should be set to True for Data-dependent control flow. What does this
-		mean? Is our training function not Data-dependent? Currently common.function (which is a wrapper on the 
-		tf.function wrapper) passes autograph=False by default.
-	TODO Maybe pass experimental_compile=True to common.function? Maybe it's not needed because 
-		later in the code we use tf.config.optimizer.set_jit(True) which enables XLA in general?
-		Who knows, test and look at performance I would say. Another thing to notice is that
-		experimental_compile=True would have the added bonus of telling us if indeed it manages
-		to compile or not since "The experimental_compile API has must-compile semantics: either 
-		the entire function is compiled with XLA, or an errors.InvalidArgumentError exception is thrown."
-		See: https://www.tensorflow.org/xla#explicit_compilation_with_tffunction
-	TODO common.function passes the parameter experimental_relax_shapes=True by default. Maybe 
-		consider instead passing it as False for efficiency... This is most likely linked to the
-		input_signature TODO that follows
-	TODO (low priority) add an input_signature parameter so that tf.function knows what to expect
-		and won't adapt to the input if something strange happens (which it really shouldn't happen)
-	"""
+	print('\n\n\n')
+	print(len(tf_agent_1._q_network._encoder._postprocessing_layers))
+	print('\n\n\n')
+	print(tf_agent_1._q_network._encoder._postprocessing_layers)
+	print('\n\n\n')
+	print(allo)
+
+
 	# Compiled version of training functions (much faster)
 	agent_1_train_function = common.function(tf_agent_1.train)
 	agent_2_train_function = common.function(tf_agent_2.train)
