@@ -233,7 +233,7 @@ def create_agent(agent_class,
 			environment.time_step_spec(),
 			environment.action_spec(),
 			categorical_q_network=categorical_q_network.CategoricalQNetwork(
-				environment.observation_spec().observation['observations'],
+				environment.time_step_spec().observation['observations'],
 				environment.action_spec(),
 				num_atoms=num_atoms,
 				fc_layer_params=fc_layer_params),
