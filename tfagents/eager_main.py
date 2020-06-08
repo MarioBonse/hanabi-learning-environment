@@ -99,6 +99,8 @@ def train_eval(
 	num_iterations,
 	# Params for collect
 	collect_episodes_per_epoch,
+	# Number of steps for training update
+	num_steps,
 	# Params for decaying Epsilon
 	initial_epsilon,
 	decay_type,
@@ -198,13 +200,17 @@ def train_eval(
 		See https://www.tensorflow.org/guide/keras/mixed_precision for more info
 	"""
 	# create an agent and a network 
-	tf_agent_1 = utility.create_agent(environment=tf_env,
-									  decaying_epsilon=decaying_epsilon_1,
-									  train_step_counter=train_step_1)
+	tf_agent_1 = utility.create_agent(
+		environment=tf_env,
+		n_step_update=num_steps-1,		# num_steps parameter must differ by 1 between agent and replay_buffer.as_dataset() call
+		decaying_epsilon=decaying_epsilon_1,
+		train_step_counter=train_step_1)
 	# Second agent. we can have as many as we want
-	tf_agent_2 = utility.create_agent(environment=tf_env,
-									  decaying_epsilon=decaying_epsilon_2,
-									  train_step_counter=train_step_2)
+	tf_agent_2 = utility.create_agent(
+		environment=tf_env,
+		n_step_update=num_steps-1,		# num_steps parameter must differ by 1 between agent and replay_buffer.as_dataset() call
+		decaying_epsilon=decaying_epsilon_2,
+		train_step_counter=train_step_2)
 	# replay buffer
 	replay_buffer, prb_flag = utility.create_replay_buffer(
 		data_spec=tf_agent_1.collect_data_spec,
@@ -336,7 +342,7 @@ def train_eval(
 		dataset = replay_buffer.as_dataset(
 			num_parallel_calls=1 if prb_flag else 3,
 			sample_batch_size=batch_size,
-			num_steps=2).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+			num_steps=num_steps).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 		
 		print('Starting partial training of both Agents from Replay Buffer\nCounting Steps:')        
 		# Commenting out losses_1/_2 (and all their relevant code) to try and see if they are responsible for an observed memory leak. 

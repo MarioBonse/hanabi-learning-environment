@@ -150,6 +150,7 @@ def create_agent(agent_class,
 				 fc_layer_params,
 				 learning_rate,
 				 decaying_epsilon,
+				 n_step_update,
 				 target_update_tau,
 				 target_update_period,
 				 gamma,
@@ -159,8 +160,8 @@ def create_agent(agent_class,
 				 summarize_grads_and_vars,
 				 train_step_counter,
 				 num_atoms=None,			# Only for categorical_dqn
-				 min_q_value=None,		# Only for categorical_dqn
-				 max_q_value=None,		# Only for categorical_dqn
+				 min_q_value=None,			# Only for categorical_dqn
+				 max_q_value=None,			# Only for categorical_dqn
 				 ):
 	"""Creates the Hanabi agent.
 
@@ -196,6 +197,7 @@ def create_agent(agent_class,
 			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
 			epsilon_greedy=decaying_epsilon,
+			n_step_update=n_step_update,
 			target_update_tau=target_update_tau,
 			target_update_period=target_update_period,
 			td_errors_loss_fn=common.element_wise_squared_loss,
@@ -216,6 +218,7 @@ def create_agent(agent_class,
 			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
 			epsilon_greedy=decaying_epsilon,
+			n_step_update=n_step_update,
 			target_update_tau=target_update_tau,
 			target_update_period=target_update_period,
 			td_errors_loss_fn=common.element_wise_squared_loss,
@@ -237,6 +240,7 @@ def create_agent(agent_class,
 			optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 			observation_and_action_constraint_splitter=observation_and_action_constraint_splitter,
 			epsilon_greedy=decaying_epsilon,
+			n_step_update=n_step_update,
 			target_update_tau=target_update_tau,
 			target_update_period=target_update_period,
 			min_q_value=min_q_value,

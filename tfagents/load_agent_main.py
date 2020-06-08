@@ -66,6 +66,8 @@ def train_eval(
 	num_iterations,
 	# Params for collect
 	collect_episodes_per_epoch,
+	# Number of steps for training update
+	num_steps,
 	# Params for decaying Epsilon
 	initial_epsilon,
 	decay_type,
@@ -131,10 +133,12 @@ def train_eval(
 
 	# create an agent and a network 
 	tf_agent_1 = utility.create_agent(environment=tf_env,
+									  n_step_update=num_steps-1,
 									  decaying_epsilon=decaying_epsilon_1,
 									  train_step_counter=train_step_1)
 	# Second agent. we can have as many as we want
 	tf_agent_2 = utility.create_agent(environment=tf_env,
+									  n_step_update=num_steps-1,
 									  decaying_epsilon=decaying_epsilon_2,
 									  train_step_counter=train_step_2)
 	# replay buffer
