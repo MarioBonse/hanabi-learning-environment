@@ -153,14 +153,15 @@ def create_agent(agent_class,
 				 target_update_tau,
 				 target_update_period,
 				 gamma,
-				 num_atoms=None,			# Only for categorical_dqn
-				 min_q_value=None,		# Only for categorical_dqn
-				 max_q_value=None,		# Only for categorical_dqn
 				 reward_scale_factor,
 				 gradient_clipping,
 				 debug_summaries,
 				 summarize_grads_and_vars,
-				 train_step_counter):
+				 train_step_counter,
+				 num_atoms=None,			# Only for categorical_dqn
+				 min_q_value=None,		# Only for categorical_dqn
+				 max_q_value=None,		# Only for categorical_dqn
+				 ):
 	"""Creates the Hanabi agent.
 
 	Args:
