@@ -186,6 +186,9 @@ def train_eval(
 	print('\n\n\n')
 	print(tf_agent_1._q_network._encoder._postprocessing_layers)
 	print('\n\n\n')
+	for layer in tf_agent_1._q_network._encoder._postprocessing_layers[1:]:
+		print(layer.units)
+	print('\n\n\n')
 	print(allo)
 
 
