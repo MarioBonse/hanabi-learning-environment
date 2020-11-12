@@ -44,7 +44,8 @@ tensorboard-plugin-wit==1.6.0.post3
 tensorflow-probability==0.10.0
 termcolor==1.1.0
 tf-estimator-nightly==2.1.0.dev2020030601
-tf-nightly==2.2.0.dev20200306
+#tf-nightly==2.2.0.dev20200306
+tf-nightly==2.4.0.dev20200902
 tfp-nightly==0.10.0.dev20200306
 tqdm==4.43.0
 urllib3==1.25.8
