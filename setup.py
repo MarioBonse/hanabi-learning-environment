@@ -5,6 +5,6 @@ setup(
     version='0.0.1',
     description='Learning environment for the game of hanabi.',
     author='deepmind/hanabi-learning-environment',
-    packages=['hanabi_learning_environment', 'hanabi_learning_environment.agents'],
+    packages=['hanabi_learning_environment'],
     install_requires=['cffi']
 )

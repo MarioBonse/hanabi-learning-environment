@@ -107,101 +107,10 @@ class HanabiEnv(py_environment.PyEnvironment):
         r"""Resets the environment for a new game.
 
         Returns:
-            observation: dict, containing the full observation about the game at the
-                current step. *WARNING* This observation contains all the hands of the
-                players and should not be passed to the agents.
-                An example observation:
-                {'current_player': 0,
-                 'player_observations': [{'current_player': 0,
-                                                                    'current_player_offset': 0,
-                                                                    'deck_size': 40,
-                                                                    'discard_pile': [],
-                                                                    'fireworks': {'B': 0,
-                                                                                                'G': 0,
-                                                                                                'R': 0,
-                                                                                                'W': 0,
-                                                                                                'Y': 0},
-                                                                    'information_tokens': 8,
-                                                                    'legal_moves': [{'action_type': 'PLAY',
-                                                                                                     'card_index': 0},
-                                                                                                    {'action_type': 'PLAY',
-                                                                                                     'card_index': 1},
-                                                                                                    {'action_type': 'PLAY',
-                                                                                                     'card_index': 2},
-                                                                                                    {'action_type': 'PLAY',
-                                                                                                     'card_index': 3},
-                                                                                                    {'action_type': 'PLAY',
-                                                                                                     'card_index': 4},
-                                                                                                    {'action_type':
-                                                                                                    'REVEAL_COLOR',
-                                                                                                     'color': 'R',
-                                                                                                     'target_offset': 1},
-                                                                                                    {'action_type':
-                                                                                                    'REVEAL_COLOR',
-                                                                                                     'color': 'G',
-                                                                                                     'target_offset': 1},
-                                                                                                    {'action_type':
-                                                                                                    'REVEAL_COLOR',
-                                                                                                     'color': 'B',
-                                                                                                     'target_offset': 1},
-                                                                                                    {'action_type': 'REVEAL_RANK',
-                                                                                                     'rank': 0,
-                                                                                                     'target_offset': 1},
-                                                                                                    {'action_type': 'REVEAL_RANK',
-                                                                                                     'rank': 1,
-                                                                                                     'target_offset': 1},
-                                                                                                    {'action_type': 'REVEAL_RANK',
-                                                                                                     'rank': 2,
-                                                                                                     'target_offset': 1}],
-                                                                    'life_tokens': 3,
-                                                                    'observed_hands': [[{'color': None, 'rank':
-                                                                    -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1}],
-                                                                                                         [{'color': 'G', 'rank': 2},
-                                                                                                            {'color': 'R', 'rank': 0},
-                                                                                                            {'color': 'R', 'rank': 1},
-                                                                                                            {'color': 'B', 'rank': 0},
-                                                                                                            {'color': 'R', 'rank':
-                                                                                                            1}]],
-                                                                    'num_players': 2,
-                                                                    'vectorized': [ 0, 0, 1, ... ]},
-                                                                 {'current_player': 0,
-                                                                    'current_player_offset': 1,
-                                                                    'deck_size': 40,
-                                                                    'discard_pile': [],
-                                                                    'fireworks': {'B': 0,
-                                                                                                'G': 0,
-                                                                                                'R': 0,
-                                                                                                'W': 0,
-                                                                                                'Y': 0},
-                                                                    'information_tokens': 8,
-                                                                    'legal_moves': [],
-                                                                    'life_tokens': 3,
-                                                                    'observed_hands': [[{'color': None, 'rank':
-                                                                    -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1},
-                                                                                                            {'color': None, 'rank':
-                                                                                                            -1}],
-                                                                                                         [{'color': 'W', 'rank': 2},
-                                                                                                            {'color': 'Y', 'rank': 4},
-                                                                                                            {'color': 'Y', 'rank': 2},
-                                                                                                            {'color': 'G', 'rank': 0},
-                                                                                                            {'color': 'W', 'rank':
-                                                                                                            1}]],
-                                                                    'num_players': 2,
-                                                                    'vectorized': [ 0, 0, 1, ... ]}]}
+            observation: TimeStep, containing the observation of the current agent along with the
+                        illegal moves and three other observation vectors that will not be passed 
+                        to the agent (they are use only to run the environment verbosely and 
+                        have intelligible output)
         """
         self.state = self.game.new_initial_state()
 
@@ -223,109 +132,13 @@ class HanabiEnv(py_environment.PyEnvironment):
         """Take one step in the game.
 
         Args:
-            action: dict, mapping to a legal action taken by an agent. The following
-                actions are supported:
-                    - { 'action_type': 'PLAY', 'card_index': int }
-                    - { 'action_type': 'DISCARD', 'card_index': int }
-                    - {
-                            'action_type': 'REVEAL_COLOR',
-                            'color': str,
-                            'target_offset': int >=0
-                        }
-                    - {
-                            'action_type': 'REVEAL_RANK',
-                            'rank': str,
-                            'target_offset': int >=0
-                        }
-                Alternatively, action may be an int in range [0, num_moves()).
+            action: Follows self._action_spec
 
         Returns:
-            observation: dict, containing the full observation about the game at the
-                current step. *WARNING* This observation contains all the hands of the
-                players and should not be passed to the agents.
-                An example observation:
-                {'current_player': 0,
-                 'player_observations': [{'current_player': 0,
-                                                        'current_player_offset': 0,
-                                                        'deck_size': 40,
-                                                        'discard_pile': [],
-                                                        'fireworks': {'B': 0,
-                                                                            'G': 0,
-                                                                            'R': 0,
-                                                                            'W': 0,
-                                                                            'Y': 0},
-                                                        'information_tokens': 8,
-                                                        'legal_moves': [{'action_type': 'PLAY',
-                                                                                 'card_index': 0},
-                                                                                {'action_type': 'PLAY',
-                                                                                 'card_index': 1},
-                                                                                {'action_type': 'PLAY',
-                                                                                 'card_index': 2},
-                                                                                {'action_type': 'PLAY',
-                                                                                 'card_index': 3},
-                                                                                {'action_type': 'PLAY',
-                                                                                 'card_index': 4},
-                                                                                {'action_type': 'REVEAL_COLOR',
-                                                                                 'color': 'R',
-                                                                                 'target_offset': 1},
-                                                                                {'action_type': 'REVEAL_COLOR',
-                                                                                 'color': 'G',
-                                                                                 'target_offset': 1},
-                                                                                {'action_type': 'REVEAL_COLOR',
-                                                                                 'color': 'B',
-                                                                                 'target_offset': 1},
-                                                                                {'action_type': 'REVEAL_RANK',
-                                                                                 'rank': 0,
-                                                                                 'target_offset': 1},
-                                                                                {'action_type': 'REVEAL_RANK',
-                                                                                 'rank': 1,
-                                                                                 'target_offset': 1},
-                                                                                {'action_type': 'REVEAL_RANK',
-                                                                                 'rank': 2,
-                                                                                 'target_offset': 1}],
-                                                        'life_tokens': 3,
-                                                        'observed_hands': [[{'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1}],
-                                                                                     [{'color': 'G', 'rank': 2},
-                                                                                        {'color': 'R', 'rank': 0},
-                                                                                        {'color': 'R', 'rank': 1},
-                                                                                        {'color': 'B', 'rank': 0},
-                                                                                        {'color': 'R', 'rank': 1}]],
-                                                        'num_players': 2,
-                                                        'vectorized': [ 0, 0, 1, ... ]},
-                                                     {'current_player': 0,
-                                                        'current_player_offset': 1,
-                                                        'deck_size': 40,
-                                                        'discard_pile': [],
-                                                        'fireworks': {'B': 0,
-                                                                            'G': 0,
-                                                                            'R': 0,
-                                                                            'W': 0,
-                                                                            'Y': 0},
-                                                        'information_tokens': 8,
-                                                        'legal_moves': [],
-                                                        'life_tokens': 3,
-                                                        'observed_hands': [[{'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1},
-                                                                                        {'color': None, 'rank': -1}],
-                                                                                     [{'color': 'W', 'rank': 2},
-                                                                                        {'color': 'Y', 'rank': 4},
-                                                                                        {'color': 'Y', 'rank': 2},
-                                                                                        {'color': 'G', 'rank': 0},
-                                                                                        {'color': 'W', 'rank': 1}]],
-                                                        'num_players': 2,
-                                                        'vectorized': [ 0, 0, 1, ... ]}]}
-            reward: float, Reward obtained from taking the action.
-            done: bool, Whether the game is done.
-            info: dict, Optional debugging information.
-
-        Raises:
-            AssertionError: When an illegal action is provided.
+            observation: TimeStep, containing the observation of the current agent along with the
+                        illegal moves and three other observation vectors that will not be passed 
+                        to the agent (they are use only to run the environment verbosely and 
+                        have intelligible output)
         """
         #action = int(np.argmax(action))
         if self._current_time_step.is_last():
@@ -471,66 +284,6 @@ class HanabiEnv(py_environment.PyEnvironment):
 
         return obs_dict
 
-    def _build_move(self, action):
-        """Build a move from an action dict.
-
-        Args:
-            action: dict, mapping to a legal action taken by an agent. The following
-                actions are supported:
-                    - { 'action_type': 'PLAY', 'card_index': int }
-                    - { 'action_type': 'DISCARD', 'card_index': int }
-                    - {
-                            'action_type': 'REVEAL_COLOR',
-                            'color': str,
-                            'target_offset': int >=0
-                        }
-                    - {
-                            'action_type': 'REVEAL_RANK',
-                            'rank': str,
-                            'target_offset': int >=0
-                        }
-
-        Returns:
-            move: A `HanabiMove` object constructed from action.
-
-        Raises:
-            ValueError: Unknown action type.
-        """
-        assert isinstance(action, dict), "Expected dict, got: {}".format(action)
-        assert "action_type" in action, ("Action should contain `action_type`. "
-                                                                         "action: {}").format(action)
-        action_type = action["action_type"]
-        assert (action_type in MOVE_TYPES), (
-                "action_type: {} should be one of: {}".format(action_type, MOVE_TYPES))
-
-        if action_type == "PLAY":
-            card_index = action["card_index"]
-            move = pyhanabi.HanabiMove.get_play_move(card_index=card_index)
-        elif action_type == "DISCARD":
-            card_index = action["card_index"]
-            move = pyhanabi.HanabiMove.get_discard_move(card_index=card_index)
-        elif action_type == "REVEAL_RANK":
-            target_offset = action["target_offset"]
-            rank = action["rank"]
-            move = pyhanabi.HanabiMove.get_reveal_rank_move(
-                    target_offset=target_offset, rank=rank)
-        elif action_type == "REVEAL_COLOR":
-            target_offset = action["target_offset"]
-            assert isinstance(action["color"], str)
-            color = color_char_to_idx(action["color"])
-            move = pyhanabi.HanabiMove.get_reveal_color_move(
-                    target_offset=target_offset, color=color)
-        else:
-            raise ValueError("Unknown action_type: {}".format(action_type))
-
-        legal_moves = self.state.legal_moves()
-        assert (str(move) in map(
-                str,
-                legal_moves)), "Illegal action: {}. Move should be one of : {}".format(
-                        move, legal_moves)
-
-        return move
-
 
 def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
     """Make an environment.
@@ -541,7 +294,7 @@ def make(environment_name="Hanabi-Full", num_players=2, pyhanabi_path=None):
         pyhanabi_path: str, absolute path to header files for c code linkage.
 
     Returns:
-        env: An `Environment` object.
+        env: A `HanabiEnv` object.
 
     Raises:
         ValueError: Unknown environment name.
