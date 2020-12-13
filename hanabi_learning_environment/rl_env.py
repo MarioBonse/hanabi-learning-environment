@@ -18,21 +18,12 @@ from __future__ import division
 from __future__ import print_function
 
 from hanabi_learning_environment import pyhanabi
-from hanabi_learning_environment.pyhanabi import color_char_to_idx
 
-import abc
 from .utility import *
-import tensorflow as tf
 import numpy as np
 import gin.tf
 from tf_agents.environments import py_environment
-from tf_agents.environments import tf_environment
-from tf_agents.environments import tf_py_environment
-from tf_agents.environments import py_environment
-from tf_agents.environments import utils
 from tf_agents.specs import array_spec
-from tf_agents.environments import wrappers
-from tf_agents.environments import suite_gym
 from tf_agents.trajectories import time_step as ts
 
 MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
