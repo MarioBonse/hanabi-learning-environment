@@ -13,10 +13,6 @@
 # limitations under the License.
 """RL environment for Hanabi, using an API similar to OpenAI Gym."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from hanabi_learning_environment import pyhanabi
 
 from .utility import *
@@ -26,7 +22,6 @@ from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
 
-MOVE_TYPES = [_.name for _ in pyhanabi.HanabiMoveType]
 
 #-------------------------------------------------------------------------------
 # Environment API
